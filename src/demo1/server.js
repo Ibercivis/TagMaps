@@ -5,6 +5,7 @@ var users = '';
 
 var util = require('util');
 var twitter = require('immortal-ntwitter');
+var fs = require('fs');
 
 var tweet = twitter.create({
     consumer_key: 'HGHEHwZIdy9U72xERlZQ',
@@ -18,10 +19,13 @@ var tweet = twitter.create({
 // 	console.log('@' + data.user.screen_name + ' : ' + data.text);
 //     });
 // });
+var my_file = fs.openSync('stream_unizar.log', 'a');
+
 
 tweet.stream('statuses/filter', {'track': keywords}, function(stream) {
     stream.on('data', function(data) {
- 	//console.log('@' + data.user.screen_name + ' : ' + data.text);
-	console.log(JSON.stringify(data));
+	fs.writeSync(my_file, JSON.stringify(data), null);
+	fs.writeSync(my_file, '\n', null);
+	fs.fsyncSync(my_file);
     });
 });
