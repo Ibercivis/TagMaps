@@ -6,6 +6,26 @@ var users = '';
 var util = require('util');
 var twitter = require('immortal-ntwitter');
 var fs = require('fs');
+var orient = require("orientdb"),
+     Db = orient.Db,
+     Server = orient.Server;
+
+var dbConfig = {
+    user_name: "admin",
+    user_password: "admin",
+};
+var serverConfig = {
+    host: "localhost",
+    port: 2424,
+    user_name: "root",
+    user_password: "208812227EDB54ACFCB55B8D7FF9ABA0B8B4526F7B3276A3F4360DA26BD6E4E9"
+};
+
+var server = new Server(serverConfig);
+var db = new Db("../databases/twzaragoza",server,dbConfig);
+//al que se le ocurrio que Uppercase/Lowercase era una buena manera de
+//distinguir variables, tendrian que colgarlo -- AR
+
 
 var tweet = twitter.create({
     consumer_key: 'HGHEHwZIdy9U72xERlZQ',
@@ -21,11 +41,20 @@ var tweet = twitter.create({
 // });
 var my_file = fs.openSync('stream_unizar.log', 'a');
 
-
-tweet.stream('statuses/filter', {'track': keywords}, function(stream) {
+db.open(function(err,result){
+  tweet.stream('statuses/filter', {'track': keywords}, function(stream) {
     stream.on('data', function(data) {
 	fs.writeSync(my_file, JSON.stringify(data), null);
 	fs.writeSync(my_file, '\n', null);
 	fs.fsyncSync(my_file);
+        data["@class"]="patata";
+        db.save(data, function(err, data) {
+          if (err) { 
+             console.log("db fail "+ err);
+          } else {
+          console.log("result:"+data["@rid"])
+          }
+        });
     });
+  });
 });
