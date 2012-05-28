@@ -3,18 +3,19 @@ var boxes = '-18.16,27.63,-13.4,30.0,-7.523,36.0,-1.6274,38.7289,-7.5416,37.35,4
 var keywords = 'unizar,@unizar,#unizar,zaragoza,bifi,ibercivis,iberus,chema gimeno,manolo lopez,universidad de zaragoza';
 var users = '';
 
-var asincrono=require('async');
+var asincrono = require('async');
 var util = require('util');
 var twitter = require('immortal-ntwitter');
 var fs = require('fs');
-var orient = require("orientdb"),
-     Db = orient.Db,
-     Server = orient.Server;
+var orient = require("orientdb");
+var Db = orient.Db;
+var Server = orient.Server;
 
 var dbConfig = {
     user_name: "admin",
-    user_password: "admin",
+    user_password: "admin"
 };
+
 var serverConfig = {
     host: "localhost",
     port: 2424,
@@ -23,7 +24,7 @@ var serverConfig = {
 };
 
 var server = new Server(serverConfig);
-var db = new Db("../databases/twzaragoza",server,dbConfig);
+var db = new Db("../databases/twzaragoza", server, dbConfig);
 //al que se le ocurrio que Uppercase/Lowercase era una buena manera de
 //distinguir variables y creadores, tendrian que colgarlo -- AR
 
@@ -42,34 +43,27 @@ var tweet = twitter.create({
 // });
 //var my_file = fs.openSync('stream_unizar.log', 'a');
 
-
-
 function comprueba(tableclass, id, callback) {
-   db.command("SELECT FROM "+tableclass+" where id = "+id, function(err,results) {
-      if (results.length) == 0 {
-         callback(); //null result
-      }
-      else {
-         callback(results[0]["@rid"]);  //o es 1??
-      } 
-   }
+    db.command("SELECT FROM " + tableclass + " where id = " + id, function(err,results) {
+	if (results.length == 0) {
+            callback(); //null result
+	} else {
+            callback(results[0]["@rid"]);  //o es 1??
+	} 
+    });
 }
 
-
-
-function savePlace(place,callback) {
-  //comprueba que no existe el id; si existe devuelve el rid
-  comprueba("lugar",place.id,hold.method)
-  callback(null,rid) 
+function savePlace(place, callback) {
+    //comprueba que no existe el id; si existe devuelve el rid
+    comprueba("lugar", place.id, hold.method);
+    callback(null, rid);
 }
 
-function saveAuthor(authordata,callback) {
-  //comprueba que no existe el id; si existe devuelve el rid
-
-  comprueba("usuario",author.id,hold.method)
-  callback(null,rid);//no error, devolvemos el rid
+function saveAuthor(authordata, callback) {
+    //comprueba que no existe el id; si existe devuelve el rid
+    comprueba("usuario", author.id, hold.method);
+    callback(null, rid);//no error, devolvemos el rid
 }
-
 
 function createEdges(tweetRid, entities) {
   //TO DO NEXT
@@ -79,88 +73,86 @@ function createEdges(tweetRid, entities) {
   //especial con mentions, que pueden ser authors o no
 }
 
-
-function saveTweet(data,callback) {
-
-  if !(this.ok) { //nos llaman sin ser objeto, nos objetivamos
-                  //en la verificacion
-      var hold={}
-      hold.data=data
-      hold.method=saveTweet
-      hold.callback=callback
-      hold.ok=true
-      comprueba("mensaje",data.id,hold.method)
-      return 
-  }
+function saveTweet(data, callback) {
+    if (!this.ok) { //nos llaman sin ser objeto, nos objetivamos en la verificacion
+	var hold = {
+	    data: data,
+	    method: saveTweet,
+	    callback: callback,
+	    ok: true
+	};
+	
+	comprueba("mensaje", data.id, hold.method);
+	return null;
+    }
  
-  //nos llaman como objeto 
-  callback=this.callback;
-  if (data){ //ya hay un rid, en data!
-       callback(null,data)
-       return
+    //nos llaman como objeto 
+    callback = this.callback;
+    if (data){ //ya hay un rid, en data!
+	callback(null, data);
+	return null;
     }
      
-  //no hay rid, es todo nuevo
-  data=this.data
+    //no hay rid, es todo nuevo
+    data = this.data;
   
-  var sustituciones={};
-  //sustituye autor 
-     sustituciones.user= function(callback){
-       saveAuthor(data.user, callback);
-     });
-  //sustituye place si lo hay
-    if (data.place) {
-      sustituciones.place= function(callback){
-       savePlace(data.place, callback);
-     });
-    }
-  //sustituye retuit si lo hay (esto es recursivo)
-    if (data.place) {
-      sustituciones.retweeted_status=function(callback){
-       saveTweet(data.retweeted_status, callback);
-     });
-    }
+    var sustituciones = {
+	user: function(callback) {
+	    saveAuthor(data.user, callback);
+	},
+	place: function(callback) {
+	    if (data.place) {
+		savePlace(data.place, callback);
+	    }
+	},
+	retweeted_status: function(callback) {
+	    if (data.retweet) {
+		saveTweet(data.retweeted_status, callback);
+	    }
+	}
+    };
   
-  asincrono.parallel(sustituciones, function(err,results) {
-     if (err) {
-       console.log("fallo el paralelo "+err)
-     } else {
-        //acepta rids, graba dato ... 
-        for (key in results) {
-          data[key]=results[key]; 
-        }
-        data["@class"]="mensaje";
-          //TO DO: la fecha, vale tal como esta?
-        db.save(data, function(err, data) {
-           if (err) {
-              console.log("db fail "+ err);
-           } else {
-              console.log("result:"+data["@rid"]);
-              // ... y crea entidades; lo hacemos aqui por si hay llamadas recursivas a saveTweet 
-              createEdges(data["@rid"], data["entities"]);
-              // TO DO: podriamos plantearnos Edges especiales:
-              //     if (in_reply_to_status_id) ...
-              //     if (in_reply_to_user_id) ....
-              //     if (retweeted_status) ....
-              callback(null,data["@rid"]);
-              return;
-           }
-        });
-      }
-  });
-  // si llegamos aqui, mal vamos
-  callback("some error has happened");
+    asincrono.parallel(sustituciones, function(err, results) {
+	if (err) {
+	    console.log("fallo el paralelo " + err);
+	} else {
+            //acepta rids, graba dato ... 
+            for (key in results) {
+		data[key]=results[key]; 
+            }
+            data["@class"]="mensaje";
+            //TO DO: la fecha, vale tal como esta?
+            db.save(data, function(err, data) {
+		if (err) {
+		    console.log("db fail "+ err);
+		} else {
+		    console.log("result:"+data["@rid"]);
+		    // ... y crea entidades; lo hacemos aqui por si hay llamadas recursivas a saveTweet 
+		    createEdges(data["@rid"], data["entities"]);
+		    // TO DO: podriamos plantearnos Edges especiales:
+		    //     if (in_reply_to_status_id) ...
+		    //     if (in_reply_to_user_id) ....
+		    //     if (retweeted_status) ....
+		    callback(null,data["@rid"]);
+		}
+
+		return null;
+            });
+	}
+    });
+
+    // si llegamos aqui, mal vamos
+    callback("some error has happened");
+    return null;
 }
 
-
-
-db.open(function(err,result){
-  tweet.stream('statuses/filter', {'track': keywords}, function(stream) {
-    stream.on('data', function(data) {
-//	fs.writeSync(my_file, JSON.stringify(data), null);
-//	fs.writeSync(my_file, '\n', null);
-//	fs.fsyncSync(my_file);
-        saveTweet(data,console.log);  
+db.open(function(err, result) {
+    tweet.stream('statuses/filter', {'track': keywords}, function(stream) {
+	stream.on('data', function(data) {
+	    //	fs.writeSync(my_file, JSON.stringify(data), null);
+	    //	fs.writeSync(my_file, '\n', null);
+	    //	fs.fsyncSync(my_file);
+            saveTweet(data, console.log);  
+	});
     });
-  });
 });
