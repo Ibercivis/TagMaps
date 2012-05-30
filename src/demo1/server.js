@@ -60,44 +60,44 @@ function Holder(tipo,savemethod,finalcallback,data){
 	comprueba(tipo,data.id,this.method);
 }
 
-function savePlace(place, callback) {
+function savePlace(placedata, finalcall) {
     //comprueba que no existe el id; si existe devuelve el rid
         if (this.constructor != Holder) { //nos llaman sin contenedor
-	var hold = new Holder("lugar",saveTweet,finalcall,data)
+	var hold = new Holder("lugar",savePlace,finalcall,placedata)
 	return null;
     }
  
     //nos llaman como objeto 
     callback = this.callback; // no es automatico? Igual no.
-    if (data){ //comprueba() ha puesto un rid en data
-	callback(null, data);
+    if (plecedata){ //comprueba() ha puesto un rid en data
+	callback(null, placedata);
 	return null;
     }
      
-    //no hay rid, es todo nuevom 
-    data = this.origdata;
+    //no hay rid, es todo nuevo 
+    // this.origdata
     
     //TO DO: save place
     
     callback(null, rid);
 }
 
-function saveAuthor(authordata, callback) {
+function saveAuthor(authordata, finalcall) {
     //comprueba que no existe el id; si existe devuelve el rid
         if (this.constructor != Holder) { //nos llaman sin contenedor
-	var hold = new Holder("usuario",saveTweet,finalcall,data)
+	var hold = new Holder("usuario",saveAuthor,finalcall,authordata)
 	return null;
     }
  
     //nos llaman como objeto 
     callback = this.callback; // no es automatico? Igual no.
-    if (data){ //comprueba() ha puesto un rid en data
-	callback(null, data);
+    if (authordata){ //comprueba() ha puesto un rid en data
+	callback(null, authordata);
 	return null;
     }
      
     //no hay rid, es todo nuevo
-    data = this.origdata;
+    //data = this.origdata;
     
     // TO DO: usuario podria tener lugares nuevos, que habria que verificar con savePlace
     
