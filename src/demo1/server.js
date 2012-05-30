@@ -53,15 +53,56 @@ function comprueba(tableclass, id, callback) {
     });
 }
 
+function Holder(tipo,savemethod,finalcallback,data){
+	this.origdata = data;
+	this.method= savemethod;  // parece que no hace falta pero es el alma de la fiesta
+	this.callback=finalcallback;
+	comprueba(tipo,data.id,this.method);
+}
+
 function savePlace(place, callback) {
     //comprueba que no existe el id; si existe devuelve el rid
-    comprueba("lugar", place.id, hold.method);
+        if (this.constructor != Holder) { //nos llaman sin contenedor
+	var hold = new Holder("lugar",saveTweet,finalcall,data)
+	return null;
+    }
+ 
+    //nos llaman como objeto 
+    callback = this.callback; // no es automatico? Igual no.
+    if (data){ //comprueba() ha puesto un rid en data
+	callback(null, data);
+	return null;
+    }
+     
+    //no hay rid, es todo nuevom 
+    data = this.origdata;
+    
+    //TO DO: save place
+    
     callback(null, rid);
 }
 
 function saveAuthor(authordata, callback) {
     //comprueba que no existe el id; si existe devuelve el rid
-    comprueba("usuario", author.id, hold.method);
+        if (this.constructor != Holder) { //nos llaman sin contenedor
+	var hold = new Holder("usuario",saveTweet,finalcall,data)
+	return null;
+    }
+ 
+    //nos llaman como objeto 
+    callback = this.callback; // no es automatico? Igual no.
+    if (data){ //comprueba() ha puesto un rid en data
+	callback(null, data);
+	return null;
+    }
+     
+    //no hay rid, es todo nuevo
+    data = this.origdata;
+    
+    // TO DO: usuario podria tener lugares nuevos, que habria que verificar con savePlace
+    
+    // TO DO: save user
+    
     callback(null, rid);//no error, devolvemos el rid
 }
 
@@ -73,28 +114,21 @@ function createEdges(tweetRid, entities) {
   //especial con mentions, que pueden ser authors o no
 }
 
-function saveTweet(data, callback) {
-    if (!this.ok) { //nos llaman sin ser objeto, nos objetivamos en la verificacion
-	var hold = {
-	    data: data,
-	    method: saveTweet,
-	    callback: callback,
-	    ok: true
-	};
-	
-	comprueba("mensaje", data.id, hold.method);
+function saveTweet(data, finalcall) {
+    if (this.constructor != Holder) { //nos llaman sin contenedor
+	var hold = new Holder("mensaje",saveTweet,finalcall,data)
 	return null;
     }
  
     //nos llaman como objeto 
-    callback = this.callback;
-    if (data){ //ya hay un rid, en data!
+    callback = this.callback; // no es automatico? Igual no.
+    if (data){ //comprueba() ha puesto un rid en data
 	callback(null, data);
 	return null;
     }
      
     //no hay rid, es todo nuevo
-    data = this.data;
+    data = this.origdata;
   
     var sustituciones = {
 	user: function(callback) {
