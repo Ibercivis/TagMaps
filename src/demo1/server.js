@@ -3,12 +3,25 @@ var boxes = '-18.16,27.63,-13.4,30.0,-7.523,36.0,-1.6274,38.7289,-7.5416,37.35,4
 var keywords = 'unizar,@unizar,#unizar,zaragoza,bifi,ibercivis,iberus,chema gimeno,manolo lopez,universidad de zaragoza';
 var users = '';
 
+// LA BBDD USA:
+//create class mensaje extends OGraphVertex;
+//create class usuario extends OGraphVertex;
+//create class lugar extends OGraphVertex;  
+//create class hashtag extends OGraphVertex;     
+//
+//create property hashtag.name string;
+//create index nameidx on hashtag(name) dictionary;
+//
+
+
+
 var asincrono = require('async');
 var util = require('util');
 var twitter = require('immortal-ntwitter');
 var fs = require('fs');
 var orient = require("orientdb");
 var Db = orient.Db;
+var graphDb=orient.GraphDb;
 var Server = orient.Server;
 
 var dbConfig = {
@@ -24,7 +37,7 @@ var serverConfig = {
 };
 
 var server = new Server(serverConfig);
-var db = new Db("../databases/twzaragoza", server, dbConfig);
+var db = new graphDb("../databases/twzaragoza", server, dbConfig);
 //al que se le ocurrio que Uppercase/Lowercase era una buena manera de
 //distinguir variables y creadores, tendrian que colgarlo -- AR
 
@@ -36,11 +49,6 @@ var tweet = twitter.create({
     access_token_secret: 'CmHOuzo5wuBXrh3NIs1BQw0l8l9R6sOdiFMf1vBJU'
 });
 
-//tweet.stream('statuses/filter', {'locations': boxes}, function(stream) {
-//     stream.on('data', function(data) {
-// 	console.log('@' + data.user.screen_name + ' : ' + data.text);
-//     });
-// });
 //var my_file = fs.openSync('stream_unizar.log', 'a');
 
 
@@ -117,12 +125,41 @@ function saveAuthor(authordata, finalcall) {
            }); 
 }
 
+function saveLink(fromRid, text) {
+  //deberia hacer un insert ignore del hashtag y en su
+  //callback crear una edge.
+  //usamos create index nameIdx on OGraphVertex (name) dictionary;
+  //para ver si gestiona solito las repeticiones
+  var data= {
+      "@class": "hashtag", 
+      name: text  
+      };
+  db.save(data, function (err,data) {
+       if (err) { 
+          console.log ("db vertex fail"+err);
+       } else {
+          console.log ("ok to save from "+fromRid+ " to "+data["@rid"]);
+          db.createEdge(
+            {"@rid":fromRid, "@class":"mensaje"},
+            data,
+            function(err,result) { if (err) {console.log("Edge error:"+JSON.stringify(err));}}
+          );
+       }
+  }); 
+}
+
+
 function createEdges(tweetRid, entities) {
-  //TO DO NEXT
   //de momento solo hashtags. Podemos hacer un
   //for key en entities, y considerarlos todos
   //de la misma clase, o hacer un caso
   //especial con mentions, que pueden ser authors o no
+  for (var i in entities.hashtags) { 
+     with (entities.hashtags[i]) {
+       console.log("ht:"+text+" en "+indices);
+       saveLink(tweetRid,text);
+       }
+  }
 }
 
 function saveTweet(data, finalcall) {
@@ -198,8 +235,10 @@ function saveTweet(data, finalcall) {
 }
 
 db.open(function(err, result) {
-    tweet.stream('statuses/filter', {'track': keywords}, function(stream) {
+//    tweet.stream('statuses/filter', {'track': keywords}, function(stream) {
+      tweet.stream('statuses/filter',  {'locations': boxes}, function(stream) {
 	stream.on('data', function(data) {
+//          console.log('@' + data.user.screen_name + ' : ' + data.text);
 	    //	fs.writeSync(my_file, JSON.stringify(data), null);
 	    //	fs.writeSync(my_file, '\n', null);
 	    //	fs.fsyncSync(my_file);
