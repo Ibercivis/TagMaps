@@ -160,7 +160,7 @@ function saveTweet(data, finalcall) {
             }
 	}
     };
-    callback("lanzando paralelo "+sustituciones);  
+    console.log("lanzando paralelo "+sustituciones);  
     asincrono.parallel(sustituciones, function(err, results) {
 	if (err) {
 	    console.log("fallo el paralelo " + err);
