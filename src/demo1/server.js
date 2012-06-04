@@ -148,12 +148,16 @@ function saveTweet(data, finalcall) {
 	place: function(callback) {
 	    if (data.place) {
 		savePlace(data.place, callback);
-	    }
+	    } else {
+               callback();
+            }
 	},
 	retweeted_status: function(callback) {
 	    if (data.retweet) {
 		saveTweet(data.retweeted_status, callback);
-	    }
+	    } else {
+               callback();
+            }
 	}
     };
     callback("lanzando paralelo "+sustituciones);  
