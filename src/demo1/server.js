@@ -43,24 +43,32 @@ var tweet = twitter.create({
 // });
 //var my_file = fs.openSync('stream_unizar.log', 'a');
 
-function comprueba(tableclass, id, callback) {
+function comprueba(tableclass, id, callbackObj) {
     db.command("SELECT FROM " + tableclass + " where id = " + id, function(err,results) {
 	if (results.length == 0) {
-            callback(); //null result
+            callbackObj.final()
 	} else {
-            callback(results[0]["@rid"]);  //o es 1??
+            callbackObj.final(results[0]["@rid"]);  //o es 1??
 	} 
     });
 }
 
 function Holder(tipo,savemethod,finalcallback,data){
+        //this.final= function(x) {
+        //     console.log("final"+this.constructor.name);
+        //     this.method.call(this,x);
+        //     };
 	this.origdata = data;
-	this.method= savemethod;  // parece que no hace falta pero es el alma de la fiesta
+        console.log("Holder:"+this.constructor.name);
+        //console.log(JSON.stringify(data));
+        console.log("Holder - dataid ="+data.id); 
+	this.final= savemethod;  // parece que no hace falta pero es el alma de la fiesta
 	this.callback=finalcallback;
-	comprueba(tipo,data.id,this.method);
+	comprueba(tipo,data.id,this);
 }
 
 function savePlace(placedata, finalcall) {
+    console.log("savePlace as "+this.constructor.name);
     //comprueba que no existe el id; si existe devuelve el rid
         if (this.constructor != Holder) { //nos llaman sin contenedor
 	var hold = new Holder("lugar",savePlace,finalcall,placedata)
@@ -83,6 +91,7 @@ function savePlace(placedata, finalcall) {
 }
 
 function saveAuthor(authordata, finalcall) {
+    console.log("saveAuthor as "+this.constructor.name);
     //comprueba que no existe el id; si existe devuelve el rid
         if (this.constructor != Holder) { //nos llaman sin contenedor
 	var hold = new Holder("usuario",saveAuthor,finalcall,authordata)
@@ -102,6 +111,7 @@ function saveAuthor(authordata, finalcall) {
     // TO DO: usuario podria tener lugares nuevos, que habria que verificar con savePlace
     
     // TO DO: save user
+    rid = -1;
     
     callback(null, rid);//no error, devolvemos el rid
 }
@@ -115,6 +125,7 @@ function createEdges(tweetRid, entities) {
 }
 
 function saveTweet(data, finalcall) {
+    console.log("saveTweet as "+this.constructor.name);
     if (this.constructor != Holder) { //nos llaman sin contenedor
 	var hold = new Holder("mensaje",saveTweet,finalcall,data)
 	return null;
@@ -145,7 +156,7 @@ function saveTweet(data, finalcall) {
 	    }
 	}
     };
-  
+    callback("lanzando paralelo "+sustituciones);  
     asincrono.parallel(sustituciones, function(err, results) {
 	if (err) {
 	    console.log("fallo el paralelo " + err);
@@ -176,7 +187,7 @@ function saveTweet(data, finalcall) {
     });
 
     // si llegamos aqui, mal vamos
-    callback("some error has happened");
+    callback("SaveTweet terminando");
     return null;
 }
 
