@@ -43,6 +43,7 @@ var tweet = twitter.create({
 // });
 //var my_file = fs.openSync('stream_unizar.log', 'a');
 
+
 function comprueba(tableclass, id, callbackObj) {
     db.command("SELECT FROM " + tableclass + " where id = " + id, function(err,results) {
 	if (results.length == 0) {
@@ -54,10 +55,6 @@ function comprueba(tableclass, id, callbackObj) {
 }
 
 function Holder(tipo,savemethod,finalcallback,data){
-        //this.final= function(x) {
-        //     console.log("final"+this.constructor.name);
-        //     this.method.call(this,x);
-        //     };
 	this.origdata = data;
         console.log("Holder:"+this.constructor.name);
         //console.log(JSON.stringify(data));
@@ -99,21 +96,25 @@ function saveAuthor(authordata, finalcall) {
     }
  
     //nos llaman como objeto 
-    callback = this.callback; // no es automatico? Igual no.
+    callback = this.callback; // hay un with automatico para this o no? 
     if (authordata){ //comprueba() ha puesto un rid en data
 	callback(null, authordata);
 	return null;
     }
      
     //no hay rid, es todo nuevo
-    //data = this.origdata;
-    
+    data = this.origdata;
+    data ["@class"]="usuario";
     // TO DO: usuario podria tener lugares nuevos, que habria que verificar con savePlace
-    
-    // TO DO: save user
-    rid = -1;
-    
-    callback(null, rid);//no error, devolvemos el rid
+    db.save(data, function(err, data) {
+		if (err) {
+		    console.log("db author fail "+ err);
+                    callback(err,-1);
+		} else {
+		    console.log("user result:"+data["@rid"]);
+		    callback(null,data["@rid"]);
+		}
+           }); 
 }
 
 function createEdges(tweetRid, entities) {
@@ -146,14 +147,14 @@ function saveTweet(data, finalcall) {
 	    saveAuthor(data.user, callback);
 	},
 	place: function(callback) {
-	    if (data.place) {
+	    if (false) { // (data.place) {
 		savePlace(data.place, callback);
 	    } else {
                callback();
             }
 	},
 	retweeted_status: function(callback) {
-	    if (data.retweet) {
+	    if (false) { // (data.retweet) {
 		saveTweet(data.retweeted_status, callback);
 	    } else {
                callback();
@@ -174,8 +175,10 @@ function saveTweet(data, finalcall) {
             db.save(data, function(err, data) {
 		if (err) {
 		    console.log("db fail "+ err);
+                    callback(err);
 		} else {
 		    console.log("result:"+data["@rid"]);
+                    console.log("author is "+data.user);
 		    // ... y crea entidades; lo hacemos aqui por si hay llamadas recursivas a saveTweet 
 		    createEdges(data["@rid"], data["entities"]);
 		    // TO DO: podriamos plantearnos Edges especiales:
@@ -184,14 +187,11 @@ function saveTweet(data, finalcall) {
 		    //     if (retweeted_status) ....
 		    callback(null,data["@rid"]);
 		}
-
-		return null;
             });
 	}
     });
 
-    // si llegamos aqui, mal vamos
-    callback("SaveTweet terminando");
+    console.log("SaveTweet terminando");
     return null;
 }
 
@@ -201,7 +201,7 @@ db.open(function(err, result) {
 	    //	fs.writeSync(my_file, JSON.stringify(data), null);
 	    //	fs.writeSync(my_file, '\n', null);
 	    //	fs.fsyncSync(my_file);
-            saveTweet(data, console.log);  
+            saveTweet(data, function (err,data) {console.log("saved:"+err+":"+data);});  
 	});
     });
 });
