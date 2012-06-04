@@ -128,20 +128,20 @@ function createEdges(tweetRid, entities) {
 function saveTweet(data, finalcall) {
     console.log("saveTweet as "+this.constructor.name);
     if (this.constructor != Holder) { //nos llaman sin contenedor
-	var hold = new Holder("mensaje",saveTweet,finalcall,data)
+	new Holder("mensaje",saveTweet,finalcall,data)
 	return null;
     }
  
     //nos llaman como objeto 
-    callback = this.callback; // no es automatico? Igual no.
-    if (data){ //comprueba() ha puesto un rid en data
-	callback(null, data);
+    if (data)  { // esto es, que comprueba() ha puesto un rid en data
+	this.callback(null, data);
 	return null;
     }
      
     //no hay rid, es todo nuevo
     data = this.origdata;
-  
+    finalcall=this.callback;
+ 
     var sustituciones = {
 	user: function(callback) {
 	    saveAuthor(data.user, callback);
@@ -161,7 +161,9 @@ function saveTweet(data, finalcall) {
             }
 	}
     };
-    console.log("lanzando paralelo "+sustituciones);  
+    console.log("lanzando paralelo "+sustituciones); 
+    //ojo, parece que parallell mete un callback en el scope, asi
+    //que hay que usar finalcall. 
     asincrono.parallel(sustituciones, function(err, results) {
 	if (err) {
 	    console.log("fallo el paralelo " + err);
@@ -175,7 +177,7 @@ function saveTweet(data, finalcall) {
             db.save(data, function(err, data) {
 		if (err) {
 		    console.log("db fail "+ err);
-                    callback(err);
+                    finalcall(err);
 		} else {
 		    console.log("result:"+data["@rid"]);
                     console.log("author is "+data.user);
@@ -185,7 +187,7 @@ function saveTweet(data, finalcall) {
 		    //     if (in_reply_to_status_id) ...
 		    //     if (in_reply_to_user_id) ....
 		    //     if (retweeted_status) ....
-		    callback(null,data["@rid"]);
+		    finalcall(null,data["@rid"]);
 		}
             });
 	}
