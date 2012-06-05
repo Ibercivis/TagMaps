@@ -126,10 +126,10 @@ function saveAuthor(authordata, finalcall) {
 }
 
 
-function saveLink(fromRid, text) {
+function saveLink(fromData, text) {
   //Como no hay un insert ignore hay que asegurarse bien. Por variar
   //de tema, vamos a hacerlo con waterfall.
-  console.log ("try to save from "+fromRid+ " to "+ text);
+  console.log ("try to save from "+fromData.@rid+ " to "+ text);
   asincrono.waterfall([
     function(cb){
         console.log ("SELECT FROM hashtag where name = '" + text +"'");
@@ -137,14 +137,14 @@ function saveLink(fromRid, text) {
             if (results.length == 0) {
               cb(null,null);
             }      else {
-              cb(null,results[0]["@rid"]); 
+              cb(null,results[0]); 
             }
            }
         );
       },
-    function(rid,cb){ 
-       if (rid) {
-         cb(null,rid); 
+    function(toData,cb){ 
+       if (toData) {
+         cb(null,toData); 
        } else {
          data = {"@class": "hashtag",name: text};
          console.log(JSON.stringify(data));
@@ -152,17 +152,16 @@ function saveLink(fromRid, text) {
           console.log ("db vertex fail"+JSON.stringify(err)+JSON.stringify(data));
            cb(err);
           } else {
-           console.log (JSON.stringify(data));
-           cb(null,data["@rid"]);
+           cb(null,data);
           }
          });
         }
        },
-    function(rid,cb) {
-          console.log ("ok to save from "+fromRid+ " to "+ rid);
+    function(toData,cb) {
+          console.log ("ok to save from "+fromData.@rid+ " to "+ toData.@rid);
           db.createEdge(
-            {"@rid":fromRid, "@class":"mensaje"},
-            {"@rid":rid, "@class": "hashtag"},
+            fromData,  // {"@rid":fromRid, "@class":"mensaje"},
+            toData, // {"@rid":rid, "@class": "hashtag"},
             function(err,result) { if (err) { 
                                      console.log("Edge error:"+JSON.stringify(err));
                                      cb(err);
@@ -176,7 +175,7 @@ function saveLink(fromRid, text) {
 }
 
 
-function createEdges(tweetRid, entities) {
+function createEdges(tweetData, entities) {
   //de momento solo hashtags. Podemos hacer un
   //for key en entities, y considerarlos todos
   //de la misma clase, o hacer un caso
@@ -184,7 +183,7 @@ function createEdges(tweetRid, entities) {
   for (var i in entities.hashtags) { 
      with (entities.hashtags[i]) {
        console.log("ht:"+text+" en "+indices);
-       saveLink(tweetRid,text);
+       saveLink(tweetData,text);
        }
   }
 }
@@ -246,7 +245,7 @@ function saveTweet(data, finalcall) {
 		    console.log("result:"+data["@rid"]);
                     console.log("author is "+data.user);
 		    // ... y crea entidades; lo hacemos aqui por si hay llamadas recursivas a saveTweet 
-		    createEdges(data["@rid"], data["entities"]);
+		    createEdges(data, data["entities"]);
 		    // TO DO: podriamos plantearnos Edges especiales:
 		    //     if (in_reply_to_status_id) ...
 		    //     if (in_reply_to_user_id) ....
