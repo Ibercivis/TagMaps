@@ -10,8 +10,8 @@ var users = '';
 //create class hashtag extends OGraphVertex;     
 //
 //create property hashtag.name string;
-//create index nameidx on hashtag(name) dictionary;
-//
+//create index nameidx on hashtag(name) dictionary; //no funciona :-( Admite duplicados.
+//create index uniqname on hashtag(name) unique;
 
 
 
@@ -64,7 +64,7 @@ function comprueba(tableclass, id, callbackObj) {
 
 function Holder(tipo,savemethod,finalcallback,data){
 	this.origdata = data;
-        console.log("Holder:"+this.constructor.name);
+        //console.log("Holder:"+this.constructor.name);
         //console.log(JSON.stringify(data));
         console.log("Holder - dataid ="+data.id); 
 	this.final= savemethod;  // parece que no hace falta pero es el alma de la fiesta
@@ -125,27 +125,51 @@ function saveAuthor(authordata, finalcall) {
            }); 
 }
 
+
 function saveLink(fromRid, text) {
-  //deberia hacer un insert ignore del hashtag y en su
-  //callback crear una edge.
-  //usamos create index nameIdx on OGraphVertex (name) dictionary;
-  //para ver si gestiona solito las repeticiones
-  var data= {
-      "@class": "hashtag", 
-      name: text  
-      };
-  db.save(data, function (err,data) {
-       if (err) { 
-          console.log ("db vertex fail"+err);
+  //Como no hay un insert ignore hay que asegurarse bien. Por variar
+  //de tema, vamos a hacerlo con waterfall.
+  console.log ("try to save from "+fromRid+ " to "+ text);
+  asincrono.waterfall([
+    function(cb){
+        db.command("SELECT FROM hashtag where name = '" + text +"'", function(err,results) {
+            if (results.length == 0) {
+              cb(null,null);
+            }      else {
+              cb(null,results[0]["@rid"]); 
+            }
+           }
+        );
+      },
+    function(rid,cb){ 
+       if (rid) {
+         cb(null,rid); 
        } else {
-          console.log ("ok to save from "+fromRid+ " to "+data["@rid"]);
+         data = {"@class": "hashtag",name: text}
+         db.save(data, function (err,data) {  if (err) {
+          console.log ("db vertex fail"+JSON.stringify(err)+JSON.stringify(data));
+           cb(err);
+          } else {
+           cb(null,data["@rid"]);
+          }
+         });
+        }
+       },
+    function(rid,cb) {
+          console.log ("ok to save from "+fromRid+ " to "+ rid);
           db.createEdge(
             {"@rid":fromRid, "@class":"mensaje"},
-            data,
-            function(err,result) { if (err) {console.log("Edge error:"+JSON.stringify(err));}}
-          );
+            {"@rid":rid, "@class": "hashtag"},
+            function(err,result) { if (err) { 
+                                     console.log("Edge error:"+JSON.stringify(err));
+                                     cb(err);
+                                    } else {
+                                     cb(null);
+                                    }
+                                  });
        }
-  }); 
+    ], function(err) {  if (err) {console.log("waterfall  error:"+JSON.stringify(err));}}
+   );
 }
 
 
