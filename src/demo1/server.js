@@ -132,6 +132,7 @@ function saveLink(fromRid, text) {
   console.log ("try to save from "+fromRid+ " to "+ text);
   asincrono.waterfall([
     function(cb){
+        console.log ("SELECT FROM hashtag where name = '" + text +"'");
         db.command("SELECT FROM hashtag where name = '" + text +"'", function(err,results) {
             if (results.length == 0) {
               cb(null,null);
@@ -145,11 +146,13 @@ function saveLink(fromRid, text) {
        if (rid) {
          cb(null,rid); 
        } else {
-         data = {"@class": "hashtag",name: text}
+         data = {"@class": "hashtag",name: text};
+         console.log(JSON.stringify(data));
          db.save(data, function (err,data) {  if (err) {
           console.log ("db vertex fail"+JSON.stringify(err)+JSON.stringify(data));
            cb(err);
           } else {
+           console.log (JSON.stringify(data));
            cb(null,data["@rid"]);
           }
          });
