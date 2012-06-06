@@ -234,6 +234,7 @@ function saveTweet(data, finalcall) {
             data["@class"]="mensaje";
             //la fecha, vale tal como esta? Mejor la cambiamos a fecha de verdad
             data.created_at=new Date(data.created_at);
+            data.created_at=data.created_at.toISOString().replace('T',' ')
             db.save(data, function(err, data) {
 		if (err) {
 		    console.log("db fail "+ err);
