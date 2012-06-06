@@ -177,7 +177,7 @@ function saveLink(fromData,htItem,cbIter) { //fromData, text) {
                                     }
                                   });
        }
-    ], function(err,modFrom) {  if (err) {console.log("waterfall  error:"+JSON.stringify(err));} else { cbIter(modFrom)} }
+    ], function(err,modFrom) {  if (err) {console.log("waterfall  error:"+JSON.stringify(err));} else { cbIter(null,modFrom)} }
    );
 }
 
@@ -188,6 +188,7 @@ function createEdges(tweetData, entities) {
   //de la misma clase, o hacer un caso
   //especial con mentions, que pueden ser authors o no
   if (entities.hashtags.length > 0) {
+    console.log("ht to save to:"+JSON.stringify(entities.hashtags));
     asincrono.reduce(entities.hashtags,
                     tweetData,
                     saveLink,
