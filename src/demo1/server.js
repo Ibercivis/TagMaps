@@ -126,10 +126,13 @@ function saveAuthor(authordata, finalcall) {
 }
 
 
-function saveLink(fromData, text) {
+
+
+function saveLink(fromData,htItem,cbIter) { //fromData, text) {
+  var text = htItem.text;
   //Como no hay un insert ignore hay que asegurarse bien. Por variar
   //de tema, vamos a hacerlo con waterfall.
-  console.log ("try to save from "+fromData.@rid+ " to "+ text);
+  console.log ("try to save from "+fromData["@rid"]+ " to "+ text);
   asincrono.waterfall([
     function(cb){
         console.log ("SELECT FROM hashtag where name = '" + text +"'");
@@ -158,7 +161,9 @@ function saveLink(fromData, text) {
         }
        },
     function(toData,cb) {
-          console.log ("ok to save from "+fromData.@rid+ " to "+ toData.@rid);
+          console.log ("ok to save from "+fromData["@rid"]+ " to "+ toData["@rid"]);
+          console.log (JSON.stringify(fromData));
+          console.log (JSON.stringify(toData));
           db.createEdge(
             fromData,  // {"@rid":fromRid, "@class":"mensaje"},
             toData, // {"@rid":rid, "@class": "hashtag"},
@@ -166,11 +171,13 @@ function saveLink(fromData, text) {
                                      console.log("Edge error:"+JSON.stringify(err));
                                      cb(err);
                                     } else {
-                                     cb(null);
+                                     console.log ("saved_edge_from"+JSON.stringify(fromData));
+                                     console.log ("saved_edge_to"+JSON.stringify(toData));
+                                     cb(null,fromData);
                                     }
                                   });
        }
-    ], function(err) {  if (err) {console.log("waterfall  error:"+JSON.stringify(err));}}
+    ], function(err,modFrom) {  if (err) {console.log("waterfall  error:"+JSON.stringify(err));} else { cbIter(modFrom)} }
    );
 }
 
@@ -180,12 +187,19 @@ function createEdges(tweetData, entities) {
   //for key en entities, y considerarlos todos
   //de la misma clase, o hacer un caso
   //especial con mentions, que pueden ser authors o no
-  for (var i in entities.hashtags) { 
-     with (entities.hashtags[i]) {
-       console.log("ht:"+text+" en "+indices);
-       saveLink(tweetData,text);
-       }
+  if (entities.hashtags.length > 0) {
+    asincrono.reduce(entities.hashtags,
+                    tweetData,
+                    saveLink,
+                    function (err, res) {}
+                    );
   }
+  //for (var i in entities.hashtags) { 
+  //   with (entities.hashtags[i]) {
+  //     console.log("ht:"+text+" en "+indices);
+  //     saveLink(text); // tweetData,text);
+  //     }
+  //}
 }
 
 function saveTweet(data, finalcall) {
