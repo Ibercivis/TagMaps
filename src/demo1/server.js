@@ -276,14 +276,20 @@ function saveTweet(data, finalcall) {
 }
 
 db.open(function(err, result) {
+      var sem=0;
 //    tweet.stream('statuses/filter', {'track': keywords}, function(stream) {
       tweet.stream('statuses/filter',  {'locations': boxes}, function(stream) {
+        //stream.on('error', function(err) {console.log("stream err"+JSON.stringify(err));});
 	stream.on('data', function(data) {
 //          console.log('@' + data.user.screen_name + ' : ' + data.text);
 	    //	fs.writeSync(my_file, JSON.stringify(data), null);
 	    //	fs.writeSync(my_file, '\n', null);
 	    //	fs.fsyncSync(my_file);
-            saveTweet(data, function (err,data) {console.log("saved:"+err+":"+data);});  
+            if (sem == 0) {
+            sem++;
+            saveTweet(data, function (err,data) {console.log("saved:"+err+":"+data);
+                                                 sem--;});
+            }  
 	});
     });
 });
