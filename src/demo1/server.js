@@ -13,6 +13,9 @@ var boxes = '-18.16,27.63,-13.4,30.0,-7.523,36.0,-1.6274,38.7289,-7.5416,37.35,4
 //
 //create property hashtag.name string;
 //create index uniqname on hashtag(name) unique;
+//etc for .id on usuario lugar y mensaje
+//create property mensaje.created_at Datetime
+//create index dateidx on mensaje(created_at) notunique
 
 
 
@@ -225,7 +228,8 @@ function saveTweet(data, finalcall) {
 		data[key]=results[key]; 
             }
             data["@class"]="mensaje";
-            //TO DO: la fecha, vale tal como esta?
+            //la fecha, vale tal como esta? Mejor la cambiamos a fecha de verdad
+            data.created_at=new Date(data.created_at);
             db.save(data, function(err, data) {
 		if (err) {
 		    console.log("db fail "+ err);
@@ -260,9 +264,6 @@ db.open(function(err, result) {
         //stream.on('error', function(err) {console.log("stream err"+JSON.stringify(err));});
 	stream.on('data', function(data) {
 //          console.log('@' + data.user.screen_name + ' : ' + data.text);
-	    //	fs.writeSync(my_file, JSON.stringify(data), null);
-	    //	fs.writeSync(my_file, '\n', null);
-	    //	fs.fsyncSync(my_file);
             if (data) {colapendiente.push(data);}
             console.log(" pendientes:"+colapendiente.length);
             if (sem == 0) {
