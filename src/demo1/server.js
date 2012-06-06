@@ -32,7 +32,7 @@ var dbConfig = {
     user_password: "admin"
 };
 
-var serverConfig = {
+var serverConfig = {   // SET YOUR OWN SERVER HERE
     host: "localhost",
     port: 2424,
     user_name: "root",
@@ -41,7 +41,11 @@ var serverConfig = {
 
 var server = new Server(serverConfig);
 var db = new graphDb("../databases/twzaragoza", server, dbConfig);
-var tweet = twitter.create({
+
+  //  CHANGE THE KEYS FOR YOUR TWITTER APPLICATION, OR IT WILL NOT WORK PROPERLY
+  //  see http://...     to register your own keys    <--- Juanjo, donde estaba documentado esto??
+  //
+var tweet = twitter.create({    
     consumer_key: 'HGHEHwZIdy9U72xERlZQ',
     consumer_secret: 'uBBpzMKtKS6xK4zCNHCRk8vs0qQ1jtEeLyS1bqti8',
     access_token_key: '250090286-bYaAOcA557DnGhs8KjlkGJwUnBcZB6B4McHC6AMd',
@@ -171,7 +175,7 @@ function createEdges(tweetData, entities,finalcall) {
   //de la misma clase, o hacer un caso
   //especial con mentions, que pueden ser authors o no
   if (entities.hashtags.length > 0) {
-    console.log("ht to be saved:"+JSON.stringify(entities.hashtags));
+    console.log("hashtags to be saved:"+JSON.stringify(entities.hashtags));
     asincrono.reduce(entities.hashtags,
                     tweetData,
                     saveLink,
@@ -235,7 +239,7 @@ function saveTweet(data, finalcall) {
 		    console.log("db fail "+ err);
                     finalcall(err);
 		} else {
-                    console.log("grabado "+data["@rid"]+" con author "+data.user);
+                    //console.log("grabado "+data["@rid"]+" con author "+data.user);
 		    // ahora crea entidades; lo hacemos aqui por si hay llamadas recursivas a saveTweet 
 		    createEdges(data, data["entities"],finalcall);
 		    // TO DO: podriamos plantearnos Edges especiales:
@@ -251,9 +255,11 @@ function saveTweet(data, finalcall) {
 }
 
 db.open(function(err, result) {
+      if (err) {console.log(err,JSON.stringify(result));};
       var sem=0;
       var salir=0;
       var colapendiente=[];
+      setInterval(function() { console.log(" pendientes:"+colapendiente.length);}, 10*1000);
 //    tweet.stream('statuses/filter', {'track': keywords}, function(stream) {
       tweet.stream('statuses/filter',  {'locations': boxes}, function(stream) {
         process.on('SIGINT', function(){  salir++; 
@@ -265,14 +271,20 @@ db.open(function(err, result) {
 	stream.on('data', function(data) {
 //          console.log('@' + data.user.screen_name + ' : ' + data.text);
             if (data) {colapendiente.push(data);}
-            console.log(" pendientes:"+colapendiente.length);
             if (sem == 0) {
             sem++;
             data=colapendiente.shift();
-            saveTweet(data, function (err,data) {console.log("saved:"+err+":"+data);
-                                                 if (salir && (colapendiente.length==0)) {process.exit();}
-                                                 else {sem--;}
-                                                 });
+            saveTweet(data, function (err,data) {
+                         if (salir && (colapendiente.length==0)) {
+                            db.close(function(err){
+                               //assert(!err, "Error while closing the database: " + err);
+                               console.log("Closed database");
+                               process.exit();
+                                    });
+                         } else {
+                            sem--;
+                         }
+                     });
             } else {
               setTimeout(function() { stream.emit('data',null);},Math.random()*5000);
             } 
