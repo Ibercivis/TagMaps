@@ -289,7 +289,10 @@ db.open(function(err, result) {
             sem++;
             saveTweet(data, function (err,data) {console.log("saved:"+err+":"+data);
                                                  sem--;});
-            }  
+            } else {
+              setTimeout(function() {console.log("reschedule");
+                                     stream.emit('data',data);},Math.random()*60);
+            } 
 	});
     });
 });
