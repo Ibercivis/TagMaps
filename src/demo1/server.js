@@ -249,7 +249,7 @@ function saveTweet(data, finalcall) {
 db.open(function(err, result) {
       var sem=0;
       var salir=0;
-      var pendiente=0;
+      var colapendiente=[];
 //    tweet.stream('statuses/filter', {'track': keywords}, function(stream) {
       tweet.stream('statuses/filter',  {'locations': boxes}, function(stream) {
         process.on('SIGINT', function(){  salir++; 
@@ -263,18 +263,17 @@ db.open(function(err, result) {
 	    //	fs.writeSync(my_file, JSON.stringify(data), null);
 	    //	fs.writeSync(my_file, '\n', null);
 	    //	fs.fsyncSync(my_file);
+            if (data) {colapendiente.push(data);}
+            console.log(" pendientes:"+colapendiente.length);
             if (sem == 0) {
             sem++;
+            data=colapendiente.shift();
             saveTweet(data, function (err,data) {console.log("saved:"+err+":"+data);
-                                                 if (salir && (pendiente==0)) {process.exit();}
+                                                 if (salir && (colapendiente.length==0)) {process.exit();}
                                                  else {sem--;}
                                                  });
             } else {
-              pendiente++;
-              console.log("reschedule "+data.id+" pendientes:"+pendiente);
-              setTimeout(function() {console.log("again process "+data.id);
-                                     pendiente--;
-                                     stream.emit('data',data);},Math.random()*5000);
+              setTimeout(function() { stream.emit('data',null);},Math.random()*5000);
             } 
 	});
     });
