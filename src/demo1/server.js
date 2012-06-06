@@ -6,6 +6,10 @@ var boxes = '-18.16,27.63,-13.4,30.0,-7.523,36.0,-1.6274,38.7289,-7.5416,37.35,4
 //for a more verbose file. Now we are cleaning some logs and comments
 
 // LA BBDD USA:
+
+//
+//create database "local:databases/twmobileSpain" admin admin local graph
+//connect "remote:localhost/../databases/twmobileSpain" admin admin
 //create class mensaje extends OGraphVertex;
 //create class usuario extends OGraphVertex;
 //create class lugar extends OGraphVertex;  
@@ -36,11 +40,11 @@ var serverConfig = {   // SET YOUR OWN SERVER HERE
     host: "localhost",
     port: 2424,
     user_name: "root",
-    user_password: "208812227EDB54ACFCB55B8D7FF9ABA0B8B4526F7B3276A3F4360DA26BD6E4E9"
+    user_password: "5D062B82804BA41F37FF0D6897FFFD3AAE9C1E672D4453DAD6A38AFB27854EE1"
 };
 
 var server = new Server(serverConfig);
-var db = new graphDb("../databases/twzaragoza", server, dbConfig);
+var db = new graphDb("../databases/twmobileSpain", server, dbConfig);
 
   //  CHANGE THE KEYS FOR YOUR TWITTER APPLICATION, OR IT WILL NOT WORK PROPERLY
   //  see http://...     to register your own keys    <--- Juanjo, donde estaba documentado esto??
