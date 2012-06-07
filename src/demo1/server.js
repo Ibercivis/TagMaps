@@ -276,8 +276,13 @@ db.open(function(err, result) {
       if (err) {console.log(err,JSON.stringify(result));};
       var sem=0;
       var salir=0;
+      var hechos=0;
       var colapendiente=[];
-      setInterval(function() { console.log(" pendientes:"+colapendiente.length);}, 10*1000);
+      setInterval(function() { console.log(" pendientes:"+colapendiente.length+" hechos:"+hechos);
+                               if (hechos==0) {console.log("no contact in last five minutes, lets kill");
+                                               process.exit(1); };
+                               hechos=0;
+                              } , 300*1000);
 //    tweet.stream('statuses/filter', {'track': keywords}, function(stream) {
       tweet.stream('statuses/filter',  {'locations': boxes}, function(stream) {
         process.on('SIGINT', function(){  salir++; 
@@ -301,6 +306,7 @@ db.open(function(err, result) {
                                     });
                          } else {
                             sem--;
+                            hechos++;
                          }
                      });
             } else {
