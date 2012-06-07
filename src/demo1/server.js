@@ -59,11 +59,12 @@ var tweet = twitter.create({
 
 
 function comprueba(tableclass, id, callbackObj) {
-    db.command("SELECT FROM " + tableclass + " where id = " + id, function(err,results) {
+    db.command("SELECT FROM " + tableclass + " where key = '" + id+"'", function(err,results) {
 	if (results.length == 0) {
             callbackObj.final()
 	} else {
-            callbackObj.final(results[0]["@rid"]);  //o es 1??
+            //console.log("res:"+JSON.stringify(err)+JSON.stringify(results));
+            callbackObj.final(results[0]["rid"]); 
 	} 
     });
 }
@@ -79,7 +80,7 @@ function Holder(tipo,savemethod,finalcallback,data){
 function savePlace(placedata, finalcall) {  //TO BE DONE
     console.log("enter savePlace as "+this.constructor.name);
     if (this.constructor != Holder) { //nos llaman sin contenedor
-	var hold = new Holder("lugar",savePlace,finalcall,placedata)
+	var hold = new Holder("index:l_idx",savePlace,finalcall,placedata)
 	return null;
     }
     // nos llaman como objeto 
@@ -98,7 +99,7 @@ function savePlace(placedata, finalcall) {  //TO BE DONE
 
 function saveAuthor(authordata, finalcall) {
     if (this.constructor != Holder) { //nos llaman sin contenedor
-	var hold = new Holder("usuario",saveAuthor,finalcall,authordata)
+	var hold = new Holder("index:us_idx",saveAuthor,finalcall,authordata)
 	return null;
     }
     //nos llaman como objeto 
@@ -113,7 +114,7 @@ function saveAuthor(authordata, finalcall) {
     // TO DO: usuario podria tener lugares nuevos, que habria que verificar con savePlace
     db.save(data, function(err, data) {
 		if (err) {
-		    console.log("db author fail "+ err);
+		    console.log("db author fail "+ JSON.stringify(err)+JSON.stringify(data));
                     callback(err,-1);
 		} else {
 		    //console.log("user result:"+data["@rid"]);
@@ -127,15 +128,27 @@ function saveLink(fromData,htItem,cbIter) { //fromData, text) {
   console.log ("try to save from "+fromData["@rid"]+ " to "+ text);
   asincrono.waterfall([
     function(cb){
-        db.command("SELECT FROM hashtag where name = '" + text +"'", function(err,results) {
+        //ojo: select from index devuelve el index, que solo tiene el rid a secas.
+        db.command("SELECT FROM index:uniqname where key = '" + text +"'", function(err,results) {
+        //TO DO: consider error
             if (results.length == 0) {
               cb(null,null);
             }      else {
-              cb(null,results[0]); 
+              cb(null,results[0].rid); 
             }
            }
         );
       },
+    function(rid,cb) {
+       if (rid) {
+         db.loadRecord(rid, function(err, record) {
+         //TO DO: consider error
+             //console.log (JSON.stringify(record));
+             cb(null,record);});
+       } else {
+       cb(null,null);
+       }
+    },
     function(toData,cb){ 
        if (toData) {
          cb(null,toData); 
@@ -151,7 +164,7 @@ function saveLink(fromData,htItem,cbIter) { //fromData, text) {
         }
        },
     function(toData,cb) {
-          console.log ("ok to save from "+fromData["@rid"]+ " to "+ toData["@rid"]);
+          //console.log ("ok to save from "+fromData["@rid"]+ " to "+ toData["@rid"]);
           //console.log (JSON.stringify(fromData));
           //console.log (JSON.stringify(toData));
           db.createEdge(
@@ -163,7 +176,7 @@ function saveLink(fromData,htItem,cbIter) { //fromData, text) {
                                     } else {
                                      //console.log ("saved_edge_from"+JSON.stringify(fromData));
                                      //console.log ("saved_edge_to"+JSON.stringify(toData));
-                                     console.log ("saved from "+fromData["@rid"]+ " to "+ toData["@rid"]);
+                                     //console.log ("saved from "+fromData["@rid"]+ " to "+ toData["@rid"]);
                                      cb(null,fromData);
                                     }
                                   });
@@ -179,7 +192,7 @@ function createEdges(tweetData, entities,finalcall) {
   //de la misma clase, o hacer un caso
   //especial con mentions, que pueden ser authors o no
   if (entities.hashtags.length > 0) {
-    console.log("hashtags to be saved:"+JSON.stringify(entities.hashtags));
+    //console.log("hashtags to be saved:"+JSON.stringify(entities.hashtags));
     asincrono.reduce(entities.hashtags,
                     tweetData,
                     saveLink,
@@ -193,7 +206,7 @@ function createEdges(tweetData, entities,finalcall) {
 
 function saveTweet(data, finalcall) {
     if (this.constructor != Holder) { //nos llaman sin contenedor
-	new Holder("mensaje",saveTweet,finalcall,data)
+	new Holder("index:m_idx",saveTweet,finalcall,data)
 	return null;
     }
     //nos llaman como objeto 
@@ -268,7 +281,6 @@ db.open(function(err, result) {
 //    tweet.stream('statuses/filter', {'track': keywords}, function(stream) {
       tweet.stream('statuses/filter',  {'locations': boxes}, function(stream) {
         process.on('SIGINT', function(){  salir++; 
-                                          stream.destroy();
                                           //stream.removeAllListeners('data');
                                           console.log("Control-C, parando stream");
                                        });
@@ -280,6 +292,7 @@ db.open(function(err, result) {
             sem++;
             data=colapendiente.shift();
             saveTweet(data, function (err,data) {
+                         if (salir) {stream.destroy();}
                          if (salir && (colapendiente.length==0)) {
                             db.close(function(err){
                                //assert(!err, "Error while closing the database: " + err);
