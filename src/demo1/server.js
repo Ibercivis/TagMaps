@@ -76,20 +76,23 @@ function comprueba(tableclass, id, callbackObj) {
 var cerrojos = []; //node.js es monohilo, asi que solo hay que tener "mutex" para el I/O de la BBDD
 function Holder(tipo,savemethod,finalcallback,data){
         this.datahash = data.id ;//crypto.createHash('md5').update(data).digest();
+        var that = this;
         if (cerrojos.indexOf(this.datahash)> -1) {
-           console.log("esperando"); 
-	   var that = this;
-           setTimeout(function(){ Holder.call(that, tipo, savemethod, finalcallback, data)},100);
+           console.log("esperando"+data.id); 
+           setTimeout(function(){ Holder.call(that, tipo, savemethod, finalcallback, data)},1000);
         } else {
+        console.log("lock for "+this.datahash);
         cerrojos.push(this.datahash);
 	this.origdata = data;
         //console.log("Holder - dataid ="+data.id); 
 	this.final= savemethod;  // parece que no hace falta pero es el alma de la fiesta
 	this.callback=function(err,result){
-                    console.log("finalcallbak: " + typeof(finalcallback));
-                    console.log("err:"+err+JSON.stringify(err));
-                    console.log("result:"+result+JSON.stringify(result));
-                    cerrojos.splice(cerrojos.indexOf(this.datahash),1);
+                    //console.log("finalcallbak: " + typeof(finalcallback));
+                    //console.log("err:"+err+JSON.stringify(err));
+                    //console.log("result:"+result+JSON.stringify(result));
+                    console.log("levantando lock "+that.datahash+"/"+data.id+"/"+this.datahash+"/"+result+" de un total de "+cerrojos.length);
+                    cerrojos.splice(cerrojos.indexOf(data.id),1);
+                    console.log(cerrojos);
                     finalcallback(err,result);
                     }
 	comprueba(tipo,data.id,this);
@@ -130,14 +133,15 @@ function saveAuthor(authordata, finalcall) {
     //no hay rid, es todo nuevo
     data = this.origdata;
     data ["@class"]="usuario";
+    var that=this;
     // TO DO: usuario podria tener lugares nuevos, que habria que verificar con savePlace
     db.save(data, function(err, data) {
 		if (err) {
 		    console.log("db author fail "+ JSON.stringify(err)+JSON.stringify(data));
-                    callback(err,-1);
+                    that.callback(err,-1);
 		} else {
 		    //console.log("user result:"+data["@rid"]);
-		    callback(null,data["@rid"]);
+		    that.callback(null,data["@rid"]);
 		}
            }); 
 }
@@ -316,12 +320,12 @@ db.open(function(err, result) {
 	stream.on('data', function(data) {
 //          console.log('@' + data.user.screen_name + ' : ' + data.text);
             if (data) {colapendiente.push(data);}
-            if (sem < 20) { 
+            if (sem < 10) { 
             sem++;
             data=colapendiente.shift();
             saveTweet(data, function (err,data) {
                          if (salir) {stream.destroy();}
-                         if (salir && (colapendiente.length==0)) {
+                         if (salir && (colapendiente.length==0)&&(cerrojos.length==0)) {
                             db.close(function(err){
                                //assert(!err, "Error while closing the database: " + err);
                                console.log("Closed database");
