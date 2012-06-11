@@ -59,6 +59,8 @@ var tweet = twitter.create({
 
 
 function comprueba(tableclass, id, callbackObj) {
+    //this function DOES NOT need to load the document, so it is a lot faster 
+    //to search on the index. 
     db.command("SELECT FROM " + tableclass + " where key = '" + id+"'", function(err,results) {
 	if (results.length == 0) {
             callbackObj.final()
@@ -69,6 +71,12 @@ function comprueba(tableclass, id, callbackObj) {
     });
 }
 
+
+//TO DO (mejora?): Si todas las escrituras pasan por Holder primero (lo que implica que
+//ademas del id hay que considerar el nombre, segun el tipo de datos que se pide)
+//entonces podriamos poner un diccionario de reserva de acceso aqui, y simplemente
+//re-schedule el Holder en caso de conflicto. Nos permitiria recobrar el 
+//paralelismo de escrituras cuando hay mucha carga
 function Holder(tipo,savemethod,finalcallback,data){
 	this.origdata = data;
         //console.log("Holder - dataid ="+data.id); 
@@ -129,6 +137,8 @@ function saveLink(fromData,htItem,cbIter) { //fromData, text) {
   asincrono.waterfall([
     function(cb){
         //ojo: select from index devuelve el index, que solo tiene el rid a secas.
+        //probablemente funcione igual de rapido el buscar directamente el documento,
+        //pero no hay forma de verificar que esta usando el indice.
         db.command("SELECT FROM index:uniqname where key = '" + text +"'", function(err,results) {
         //TO DO: consider error
             if (results.length == 0) {
@@ -254,7 +264,7 @@ function saveTweet(data, finalcall) {
             data.created_at=data.created_at.toISOString().replace('T',' ')
             db.save(data, function(err, data) {
 		if (err) {
-		    console.log("db fail "+ err);
+		    console.log("db fail "+ err + JSON.stringify(err));
                     finalcall(err);
 		} else {
                     //console.log("grabado "+data["@rid"]+" con author "+data.user);

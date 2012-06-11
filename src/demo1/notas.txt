@@ -1,0 +1,35 @@
+java ... -Dmvrbtree.ridBinaryThreshold=-1 para que no pase a enviar ORIDs
+select GREMLIN("current.as('a').in.out.as('b').simplePath.select(['a','b']).groupCount(){it.name}.cap()")  from hashtag limit 9
+connect "remote:localhost/../databases/twmobileSpain" admin admin    
+select GREMLIN("current.sideEffect{x=it}.out.as('a').transform{x}.out.as('b').select(['a','b'])") from mensaje limit 99999
+en teoria a esto le sigue groupBy{[it[0],it[1]]}{x}.cap
+pero en cualquier caso parece que es muy lento, con muchos nodos nulos
+select created_at from mensaje where created_at.format('yyyy-MM-dd'T'HH:mm:ss.SSS'Z'') > '2012-06-07T18:29:00.000Z' limit 100
+esto puede que use el indice:
+
+select created_at from mensaje where created_at > date('2012-06-07T18:29:00.000Z','yyyy-MM-dd'T'HH:mm:ss.SSS'Z'')  limit 100
+por ejemplo esto funciona pero devuelve vacios, claro
+select  GREMLIN("current.sideEffect{x=it}.out.as('a').transform{x}.out.as('b').select(['a','b']).groupCount().cap") from mensaje where created_at > date('2012-06-07T18:38:00.000Z','yyyy-MM-dd'T'HH:mm:ss.SSS'Z'')
+
+
+puede que el problema no fuera el indice sino el recuperar el documento completo si existia... pero es raro, dado que no iba a existir casi nunca.
+
+select * from index:dateidx where key > date('2012-06-07T18:29:00.000Z','yyyy-MM-dd'T'HH:mm:ss.SSS'Z'')  limit 100
+traverse hashtag.in, E.out, mensaje.out, E.in  from #11:0 where $depth <= 4 and ((not (@class = 'mensaje')) OR (created_at > date('2012-06-07T28:38:00.000Z','yyyy-MM-dd'T'HH:mm:ss.SSS'Z'') ))
+
+esa recorre e ignora si la fecho lo hace
+
+traverse hashtag.in, E.out, mensaje.out, E.in  from hashtag  where $depth <= 4 tarda unos 0.726 segundos, de momento
+
+
+select $path,$depth from (traverse V.in, E.out, V.out, E.in  from cluster:11  where $depth <= 4) limit 99999999 
+va a toda partilla, pero no filtraselect count(*) from (traverse V.in, E.out, V.out, E.in  from cluster:11  where $depth <= 4 etc.... tarda menos de un segundo
+(ojo, para 10000 nodos de momento. A saber)
+0 10880 0.455 
+1 31923 0.848
+2 40420 0.847
+3 38594 0.722
+4 37923 0.774
+
+(un poco inconsistente, no?)
+(no, cuanto mas largo es el camino, permitimos que un solo camino bloquee mas nodos o algo asi... pero no parece que el algoritmo este muy limpio)
