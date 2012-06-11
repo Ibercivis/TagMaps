@@ -26,6 +26,7 @@ var boxes = '-18.16,27.63,-13.4,30.0,-7.523,36.0,-1.6274,38.7289,-7.5416,37.35,4
 var asincrono = require('async');
 var util = require('util');
 var twitter = require('immortal-ntwitter');
+var crypto = require('crypto');
 var orient = require("orientdb");
 var Db = orient.Db;
 var graphDb=orient.GraphDb;
@@ -72,17 +73,27 @@ function comprueba(tableclass, id, callbackObj) {
 }
 
 
-//TO DO (mejora?): Si todas las escrituras pasan por Holder primero (lo que implica que
-//ademas del id hay que considerar el nombre, segun el tipo de datos que se pide)
-//entonces podriamos poner un diccionario de reserva de acceso aqui, y simplemente
-//re-schedule el Holder en caso de conflicto. Nos permitiria recobrar el 
-//paralelismo de escrituras cuando hay mucha carga
+var cerrojos = []; //node.js es monohilo, asi que solo hay que tener "mutex" para el I/O de la BBDD
 function Holder(tipo,savemethod,finalcallback,data){
+        this.datahash = data.id ;//crypto.createHash('md5').update(data).digest();
+        if (cerrojos.indexOf(this.datahash)> -1) {
+           console.log("esperando"); 
+	   var that = this;
+           setTimeout(function(){ Holder.call(that, tipo, savemethod, finalcallback, data)},100);
+        } else {
+        cerrojos.push(this.datahash);
 	this.origdata = data;
         //console.log("Holder - dataid ="+data.id); 
 	this.final= savemethod;  // parece que no hace falta pero es el alma de la fiesta
-	this.callback=finalcallback;
+	this.callback=function(err,result){
+                    console.log("finalcallbak: " + typeof(finalcallback));
+                    console.log("err:"+err+JSON.stringify(err));
+                    console.log("result:"+result+JSON.stringify(result));
+                    cerrojos.splice(cerrojos.indexOf(this.datahash),1);
+                    finalcallback(err,result);
+                    }
 	comprueba(tipo,data.id,this);
+        }
 }
 
 function savePlace(placedata, finalcall) {  //TO BE DONE
@@ -191,7 +202,9 @@ function saveLink(fromData,htItem,cbIter) { //fromData, text) {
                                     }
                                   });
        }
-    ], function(err,modFrom) {  if (err) {console.log("waterfall  error:"+JSON.stringify(err));} else { cbIter(null,modFrom)} }
+    ], function(err,modFrom) {  /////cerrojos.splice(cerrojos.indexOf(""+modFrom.id));
+                                if (err) {console.log("waterfall  error:"+JSON.stringify(err));} else { 
+                                cbIter(null,modFrom)} }
    );
 }
 
@@ -303,7 +316,7 @@ db.open(function(err, result) {
 	stream.on('data', function(data) {
 //          console.log('@' + data.user.screen_name + ' : ' + data.text);
             if (data) {colapendiente.push(data);}
-            if (sem == 0) {
+            if (sem < 20) { 
             sem++;
             data=colapendiente.shift();
             saveTweet(data, function (err,data) {
@@ -325,3 +338,8 @@ db.open(function(err, result) {
 	});
     });
 });
+
+
+// transacciones: las explica en http://code.google.com/p/orient/wiki/Transactions
+// pero parece que van asociadas a la conexion, usease que hay que hacer un new db y db.open por cada
+// agente que este dando servicio a la cola. No me fio en un mismo proceso de node
