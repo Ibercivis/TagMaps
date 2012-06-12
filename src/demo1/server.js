@@ -81,7 +81,7 @@ function Holder(tipo,savemethod,finalcallback,data){
            console.log("esperando"+data.id); 
            setTimeout(function(){ Holder.call(that, tipo, savemethod, finalcallback, data)},1000);
         } else {
-        console.log("lock for "+this.datahash);
+        //console.log("lock for "+this.datahash);
         cerrojos.push(this.datahash);
 	this.origdata = data;
         //console.log("Holder - dataid ="+data.id); 
@@ -90,9 +90,9 @@ function Holder(tipo,savemethod,finalcallback,data){
                     //console.log("finalcallbak: " + typeof(finalcallback));
                     //console.log("err:"+err+JSON.stringify(err));
                     //console.log("result:"+result+JSON.stringify(result));
-                    console.log("levantando lock "+that.datahash+"/"+data.id+"/"+this.datahash+"/"+result+" de un total de "+cerrojos.length);
+                    //console.log("levantando lock "+that.datahash+"/"+data.id+"/"+this.datahash+"/"+result+" de un total de "+cerrojos.length);
                     cerrojos.splice(cerrojos.indexOf(data.id),1);
-                    console.log(cerrojos);
+                    //console.log(cerrojos);
                     finalcallback(err,result);
                     }
 	comprueba(tipo,data.id,this);
@@ -207,8 +207,10 @@ function saveLink(fromData,htItem,cbIter) { //fromData, text) {
                                   });
        }
     ], function(err,modFrom) {  /////cerrojos.splice(cerrojos.indexOf(""+modFrom.id));
-                                if (err) {console.log("waterfall  error:"+JSON.stringify(err));} else { 
-                                cbIter(null,modFrom)} }
+                                if (err) {console.log("waterfall  error:"+JSON.stringify(err));
+                                      cbIter("posible colision?",modFrom);
+                                } else { 
+                                      cbIter(null,modFrom)} }
    );
 }
 
