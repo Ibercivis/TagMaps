@@ -146,7 +146,11 @@ function saveAuthor(authordata, finalcall) {
            }); 
 }
 
+var linlock=0
 function saveLink(fromData,htItem,cbIter) { //fromData, text) {
+  if (linlock) { setTimeout(function() {saveLink(fromData,htItem,cbIter)},100) 
+  } else {
+  linlock++
   var text = htItem.text;
   console.log ("try to save from "+fromData["@rid"]+ " to "+ text);
   asincrono.waterfall([
@@ -195,7 +199,8 @@ function saveLink(fromData,htItem,cbIter) { //fromData, text) {
           db.createEdge(
             fromData,  // {"@rid":fromRid, "@class":"mensaje"},
             toData, // {"@rid":rid, "@class": "hashtag"},
-            function(err,result) { if (err) { 
+            function(err,result) { 
+                                   if (err) { 
                                      console.log("Edge error:"+JSON.stringify(err));
                                      cb(err);
                                     } else {
@@ -207,11 +212,13 @@ function saveLink(fromData,htItem,cbIter) { //fromData, text) {
                                   });
        }
     ], function(err,modFrom) {  /////cerrojos.splice(cerrojos.indexOf(""+modFrom.id));
+                                linlock--;
                                 if (err) {console.log("waterfall  error:"+JSON.stringify(err));
                                       cbIter("posible colision?",modFrom);
                                 } else { 
                                       cbIter(null,modFrom)} }
    );
+ }
 }
 
 
@@ -225,7 +232,7 @@ function createEdges(tweetData, entities,finalcall) {
     asincrono.reduce(entities.hashtags,
                     tweetData,
                     saveLink,
-                    function (err, res) { finalcall(null,res["@rid"]);}
+                    function (err, res) { if (err) {finalcall("problemas en hashtags",-1)} else {finalcall(null,res["@rid"]);}}
                     );
   } else {
      finalcall(null,tweetData["@rid"]);
@@ -326,6 +333,7 @@ db.open(function(err, result) {
             sem++;
             data=colapendiente.shift();
             saveTweet(data, function (err,data) {
+                         if (err) {console.log("data end  with error "+err)}
                          if (salir) {stream.destroy();}
                          if (salir && (colapendiente.length==0)&&(cerrojos.length==0)) {
                             db.close(function(err){
