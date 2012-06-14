@@ -41,11 +41,11 @@ var serverConfig = {   // SET YOUR OWN SERVER HERE
     host: "localhost",
     port: 2424,
     user_name: "root",
-    user_password: "5D062B82804BA41F37FF0D6897FFFD3AAE9C1E672D4453DAD6A38AFB27854EE1"
+    user_password: "1BC4405B68869D481A182C4BACC55A4D40EE30D972919819830865FBB5049CE1"
 };
 
 var server = new Server(serverConfig);
-var db = new graphDb("../databases/twmobileSpain", server, dbConfig);
+var db = new graphDb("twmobileSpain", server, dbConfig);
 
   //  CHANGE THE KEYS FOR YOUR TWITTER APPLICATION, OR IT WILL NOT WORK PROPERLY
   //  see http://...     to register your own keys    <--- Juanjo, donde estaba documentado esto??
@@ -102,7 +102,7 @@ function Holder(tipo,savemethod,finalcallback,data){
 function savePlace(placedata, finalcall) {  //TO BE DONE
     console.log("enter savePlace as "+this.constructor.name);
     if (this.constructor != Holder) { //nos llaman sin contenedor
-	var hold = new Holder("index:l_idx",savePlace,finalcall,placedata)
+	var hold = new Holder("index:uniqidlugar",savePlace,finalcall,placedata)
 	return null;
     }
     // nos llaman como objeto 
@@ -121,7 +121,7 @@ function savePlace(placedata, finalcall) {  //TO BE DONE
 
 function saveAuthor(authordata, finalcall) {
     if (this.constructor != Holder) { //nos llaman sin contenedor
-	var hold = new Holder("index:us_idx",saveAuthor,finalcall,authordata)
+	var hold = new Holder("index:uniqidusuario",saveAuthor,finalcall,authordata)
 	return null;
     }
     //nos llaman como objeto 
@@ -152,7 +152,7 @@ function saveLink(fromData,htItem,cbIter) { //fromData, text) {
   } else {
   linlock++
   var text = htItem.text;
-  console.log ("try to save from "+fromData["@rid"]+ " to "+ text);
+  console.log (linlock+"try to save from "+fromData["@rid"]+ " to "+ text);
   asincrono.waterfall([
     function(cb){
         //ojo: select from index devuelve el index, que solo tiene el rid a secas.
@@ -199,12 +199,13 @@ function saveLink(fromData,htItem,cbIter) { //fromData, text) {
           db.createEdge(
             fromData,  // {"@rid":fromRid, "@class":"mensaje"},
             toData, // {"@rid":rid, "@class": "hashtag"},
-            function(err,result) { 
+            function(err,result,a,b) { 
                                    if (err) { 
                                      console.log("Edge error:"+JSON.stringify(err));
                                      cb(err);
                                     } else {
                                      //console.log ("saved_edge_from"+JSON.stringify(fromData));
+                                     //console.log ("compare with"+JSON.stringify(a)); 
                                      //console.log ("saved_edge_to"+JSON.stringify(toData));
                                      //console.log ("saved from "+fromData["@rid"]+ " to "+ toData["@rid"]);
                                      cb(null,fromData);
@@ -216,6 +217,7 @@ function saveLink(fromData,htItem,cbIter) { //fromData, text) {
                                 if (err) {console.log("waterfall  error:"+JSON.stringify(err));
                                       cbIter("posible colision?",modFrom);
                                 } else { 
+                                      //console.log ("returning vertex"+JSON.stringify(fromData));
                                       cbIter(null,modFrom)} }
    );
  }
@@ -242,7 +244,7 @@ function createEdges(tweetData, entities,finalcall) {
 
 function saveTweet(data, finalcall) {
     if (this.constructor != Holder) { //nos llaman sin contenedor
-	new Holder("index:m_idx",saveTweet,finalcall,data)
+	new Holder("index:uniqidmensaje",saveTweet,finalcall,data)
 	return null;
     }
     //nos llaman como objeto 
@@ -309,7 +311,7 @@ function saveTweet(data, finalcall) {
 }
 
 db.open(function(err, result) {
-      if (err) {console.log(err,JSON.stringify(result));};
+      if (err) {console.log(err,JSON.stringify(result)); process.exit(2)};
       var sem=0;
       var salir=0;
       var hechos=0;
@@ -325,9 +327,10 @@ db.open(function(err, result) {
                                           //stream.removeAllListeners('data');
                                           console.log("Control-C, parando stream");
                                        });
-        //stream.on('error', function(err) {console.log("stream err"+JSON.stringify(err));});
+        stream.on('error', function(err) {console.log("stream err"+JSON.stringify(err));});
 	stream.on('data', function(data) {
-//          console.log('@' + data.user.screen_name + ' : ' + data.text);
+          //console.log("data"+JSON.stringify(data));
+            if (data){ console.log(colapendiente.length+":"+cerrojos.length+'@' + data.user.screen_name + ' : ' + data.text)};
             if (data) {colapendiente.push(data);}
             if (sem < 10) { 
             sem++;
@@ -347,7 +350,7 @@ db.open(function(err, result) {
                          }
                      });
             } else {
-              setTimeout(function() { stream.emit('data',null);},Math.random()*5000);
+              setTimeout(function() { stream.emit('data',null);},Math.random()*500*colapendiente.length);
             } 
 	});
     });

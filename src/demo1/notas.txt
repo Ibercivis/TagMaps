@@ -33,3 +33,20 @@ va a toda partilla, pero no filtraselect count(*) from (traverse V.in, E.out, V.
 
 (un poco inconsistente, no?)
 (no, cuanto mas largo es el camino, permitimos que un solo camino bloquee mas nodos o algo asi... pero no parece que el algoritmo este muy limpio)
+twmobileSpain
+
+
+
+  191  curl -u root:1BC4405B68869D481A182C4BACC55A4D40EE30D972919819830865FBB5049CE1 http://localhost:2480/server
+  192  curl -u admin:admin http://localhost:2480/connect/twmobileSpain
+
+ curl -u admin:admin http://localhost:2480/command/twmobileSpain/gremlin -d "g.V.filter{it.'@class'=='mensaje'}[1..22]"
+  235  curl -u admin:admin http://localhost:2480/command/twmobileSpain/gremlin -d "g.V.filter{it.'@class'=='hashtag'}[1..500].as('a').out.in.as('b').select['a','b'].groupCount(){it.name}.cap()"
+  236  curl -u admin:admin http://localhost:2480/command/twmobileSpain/gremlin -d "g.V.filter{it.'@class'=='hashtag'}[1..500].as('a').out.in.as('b').select['x','h'].groupCount(){it.name}.cap()"
+  237  curl -u admin:admin http://localhost:2480/command/twmobileSpain/gremlin -d "g.V.filter{it.'@class'=='hashtag'}[1..500].as('a').out.in.as('b').select(['a','b']).groupCount(){it.name}.cap()"
+  238  curl -u admin:admin http://localhost:2480/command/twmobileSpain/gremlin -d "g.V.filter{it.'@class'=='hashtag'}[1..5].as('a').out.in.as('b').select(['a','b']).groupCount(){it.name}.cap()"
+  239  curl -u admin:admin http://localhost:2480/command/twmobileSpain/gremlin -d "g.V.filter{it.'@class'=='hashtag'}[1..5]"
+  240  curl -u admin:admin http://localhost:2480/command/twmobileSpain/gremlin -d "g.V.filter{it.'
+
+
+
