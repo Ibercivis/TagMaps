@@ -1,4 +1,5 @@
 var boxes = '-18.16,27.63,-13.4,30.0,-7.523,36.0,-1.6274,38.7289,-7.5416,37.35,4.33,40.48,-7.08,40.48,4.33,41.807,-9.3,41.807,-0.73,43.8,-0.73,41.807,3.34,43.0,-2.9755,35.2560,-2.91,35.337,-5.3822,35.8715,-5.2783,35.9180';
+var totaltasks=3000; //para evitar problemas de memoria del Java
 //var keywords = 'unizar,@unizar,#unizar,zaragoza,bifi,ibercivis,iberus,chema gimeno,manolo lopez,universidad de zaragoza';
 //var users = '';
 
@@ -38,14 +39,15 @@ var dbConfig = {
 };
 
 var serverConfig = {   // SET YOUR OWN SERVER HERE
-    host: "localhost",
+    host: "node3.ibercivis.es",
     port: 2424,
     user_name: "root",
-    user_password: "1BC4405B68869D481A182C4BACC55A4D40EE30D972919819830865FBB5049CE1"
+    user_password: "1BC4405B68869D481A182C4BACC55A4D40EE30D972919819830865FBB5049CE1" 
+              //"F181EE145A172DD7D24B69379E1202FA2E6315EF66910CA106DF13B5F6F56B48"
 };
 
 var server = new Server(serverConfig);
-var db = new graphDb("twmobileSpain", server, dbConfig);
+var db = new graphDb("moSpain", server, dbConfig);
 
   //  CHANGE THE KEYS FOR YOUR TWITTER APPLICATION, OR IT WILL NOT WORK PROPERLY
   //  see http://...     to register your own keys    <--- Juanjo, donde estaba documentado esto??
@@ -334,6 +336,8 @@ db.open(function(err, result) {
             if (data) {colapendiente.push(data);}
             if (sem < 10) { 
             sem++;
+            totaltasks--;
+            if (totaltasks == 0) {salir++};
             data=colapendiente.shift();
             saveTweet(data, function (err,data) {
                          if (err) {console.log("data end  with error "+err)}
@@ -350,7 +354,7 @@ db.open(function(err, result) {
                          }
                      });
             } else {
-              setTimeout(function() { stream.emit('data',null);},Math.random()*500*colapendiente.length);
+              setTimeout(function() { stream.emit('data',null);},Math.random()*1000*colapendiente.length);
             } 
 	});
     });

@@ -1,0 +1,235 @@
+<!DOCTYPE html>
+<html>
+<head>
+<style type="text/css">
+circle.node {
+  stroke: #999;
+  stroke-width: 1.5px;
+  stroke-opacity: .6;
+  font: 10px sans-serif;
+}
+
+line.link {
+  stroke: #999;
+  stroke-opacity: .6;
+}
+
+text.node {
+  font: 12px sans-serif;
+ 
+}
+
+</style>
+<title>demo</title>
+</head>
+<body>
+<!-- cosas para un CMS: nav, footer, q, s, samp, section, details, summary, wbr
+.... track kind=subtitles! 
+<data value="1">One</data><!-- output, var 
+
+Parece que todo el mundo usa un rate-slider del jquery.ui:
+display = $("<div>").attr("id", "rate-value").text("Rate Value: " + rate);
+
+slider = $("<div>").attr("id", "rate-slider").slider({
+  value: rate,
+  min: 0.01,
+  max: 10,
+  step: 0.01,
+  slide: function(event, ui) {
+    rate = ui.value;
+    $("#rate-value").text("Rate Value: " + rate);
+    return redrawLines();
+  }
+});
+
+
+-->
+<details> <!-- open="open"-->
+<p>Aqui iria la ayuda, de momento lo usamos para esconder
+cachos de interface que no estan ni planteados</p>
+<progress value="250" max="1000">
+<span id="downloadProgress">25</span>%
+</progress>
+<meter min="0" max="800" value="400">50%</meter>
+<menu>...</menu> <!--o quizas <select name y <option value, no?-->
+</details>
+
+
+<div class="panel">
+<!--ver html5 command tag-->
+
+<fielset name="Controles del algoritmo">
+Carga/Gravedad
+<input name="r" type="range" min="1" max="11" value="9">
+Distancia
+<input name="r" type="range" min="1" max="11" value="9">
+<input type="button" text="Reset" value="Reset Zoom"/>
+</fielset>
+
+
+<br/>
+
+<fielset name="gravity">
+<button>
+Controles de los datos
+<input type="button" value="Recargar"/>
+<input type="checkbox" value="Auto"/> Auto
+</button>
+</fielset>
+
+ 
+
+</div>
+
+
+<script src="d3.v2.js"></script>
+
+
+
+<script>
+//interesante http://en.wikipedia.org/wiki/Server-sent_events y <eventsource>
+//http://www.html5rocks.com/en/tutorials/eventsource/basics/
+
+
+
+
+
+
+
+//
+//D3 is not a compatibility layer, so if your browser doesn't support 
+//standards, you're out of luck. Sorry!
+//
+//para probar esto en local con crome, lanzar con --allow-file-access-from-files
+ d3.select("body")
+   .append('div')
+   .attr('class', 'gallery')
+   .attr('id','chart')
+//no se si esta div deveria ser object y tener sus parametros iniciales
+//como param; parece que no, a no ser que fuera una iframe o un objeto externo
+//vease tambien embed en ese caso.
+
+//y tendria que tener scrollbars o flechas o hot scroll, no?
+
+
+   
+ var force=d3.layout.force()
+     .charge(-30)
+     .linkDistance(20)
+     .size([900, 900]);
+
+var svg = d3.select("#chart").append("svg:svg")   
+      .attr("width", 900) .attr("height", 900)
+      .append("svg:g")
+      //.attr("transform","translate(-500,500) scale(1.3)")
+      //.attr("pointer-events", "all")
+
+
+
+
+var mizoom = d3.behavior.zoom()
+      //.translate([0,0])
+      //.scale(1.0)
+      .scaleExtent([0.5,5.0]) // default is d3_behavior_zoomInfinity
+      .on("zoom", function(){
+            svg.attr("transform","translate(" + d3.event.translate[0] + "," +  d3.event.translate[1] + ") scale(" +  d3.event.scale + ")")
+           })
+      
+      ;
+        
+
+      svg.call(mizoom);
+
+svg.append("svg:rect")
+  .attr("width", 900) .attr("height", 900)
+  .attr("fill", "white")
+
+ d3.json('result.json', function(datarray) {
+  //console.log(datarray);
+  var nodes = [];
+      nodes.indice=function(nombre){
+         var res = -1 ;
+         var intpos= -1;
+         //var that=this
+         //$.each(this, function(entry) {   //este each es una kk mejor otra cosa!
+         for (pos in this) {  
+             intpos++  
+             if (this[pos].name==nombre) {res=intpos}
+            }
+         return res
+       }
+      links = [];
+  //$.each(datarray, function(key, val) {
+  for ( i in datarray) {
+    val = datarray[i]
+    if (val.value > 1) {
+      //console.log(val.key[0], val.key[1], val.value);
+      if (nodes.indice(val.key[0] )==-1) {nodes.push({name:val.key[0]})}
+      if (nodes.indice(val.key[1] )==-1) {nodes.push({name:val.key[1]})}
+      links.push({source:nodes.indice(val.key[0]),
+                target:nodes.indice(val.key[1]),
+                peso:val.value }) 
+      } 
+  };
+  console.log(nodes);
+  console.log(links);
+  force.nodes(nodes).links(links).start();
+
+  var link = svg.selectAll("line.link")
+         .data(links)
+         .enter().append("svg:line")
+         .attr("class", "link")
+         .style("stroke-width", function(d) { return Math.sqrt(d.peso); });
+ 
+   var node = svg.selectAll("text.node")
+       .data(nodes)
+       .enter()
+       .append("svg:text")
+       .attr("class", "node")
+       .attr("r", 1)
+       .text(function(d) { return d.name; })
+       .attr("text-anchor", "middle")
+       //.style("fill", function(d) { return "#432"; })
+       //.append("text")
+       //.attr("text-anchor", "middle")
+       //.attr("class", "node")
+       //.attr("font-family", "sans-serif")
+       //.attr("font-size", "11px")
+       //.attr("fill", "red")
+       .call(force.drag);
+ 
+   node.append("title")
+        .text(function(d) { return d.name; });
+
+   //node.append("text")
+   //     .text(function(d) { return d.name; });
+
+   node.attr("r",2) ; 
+   
+  // node.append("svg:text")
+   //    .attr("class","nodetext")
+       //.attr("text-anchor", "middle")
+   //    .attr("dy", ".900em")
+   //    .attr("dy", 5)
+       //.attr("x", function(d) { return 90; })
+       //.attr("y", function(d) { return 45+d.y; })
+   //    .text(function(d) { return d.name+"HOLA"; });
+   
+   //node.enter().append("text")
+   //     .attr("text-anchor", "middle")
+ 
+   force.on("tick", function() {
+      link.attr("x1", function(d) { return d.source.x; })
+         .attr("y1", function(d) { return d.source.y; })
+         .attr("x2", function(d) { return d.target.x; })
+         .attr("y2", function(d) { return d.target.y; });
+     node.attr("x", function(d) { return d.x; })
+         .attr("y", function(d) { return d.y; });
+     node.attr("cx", function(d) { return d.x; })
+         .attr("cy", function(d) { return d.y; });
+  }) 
+ })
+
+</script>
+</body>
+</html>
