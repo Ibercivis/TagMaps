@@ -6,7 +6,6 @@ circle.node {
   stroke: #999;
   stroke-width: 1.5px;
   stroke-opacity: .6;
-  font: 10px sans-serif;
 }
 
 line.link {
@@ -15,108 +14,92 @@ line.link {
 }
 
 text.node {
-  font: 12px sans-serif;
- 
+  font-size: 9px ;
+  font-family: sans-serif; 
+  /*font: 2px sans-serif;*/
+  fill: brown; /*SVG; CSS es color*/
+  text-anchor: middle; /*svg 1.1.*/
+}
+
+div.gallery {
+  border-style:dotted;
+}
+
+svg {
+  border-style:solid;
 }
 
 </style>
 <title>demo</title>
 </head>
 <body>
+<p>
+This document is in the wild only for test in different machines. Please do not refer to it as its final placement will change. 
+<p>
 <!-- cosas para un CMS: nav, footer, q, s, samp, section, details, summary, wbr
 .... track kind=subtitles! 
 <data value="1">One</data><!-- output, var 
-
 Parece que todo el mundo usa un rate-slider del jquery.ui:
-display = $("<div>").attr("id", "rate-value").text("Rate Value: " + rate);
-
-slider = $("<div>").attr("id", "rate-slider").slider({
-  value: rate,
-  min: 0.01,
-  max: 10,
-  step: 0.01,
-  slide: function(event, ui) {
-    rate = ui.value;
-    $("#rate-value").text("Rate Value: " + rate);
-    return redrawLines();
-  }
-});
-
-
 -->
-<details> <!-- open="open"-->
-<p>Aqui iria la ayuda, de momento lo usamos para esconder
-cachos de interface que no estan ni planteados</p>
-<progress value="250" max="1000">
-<span id="downloadProgress">25</span>%
-</progress>
-<meter min="0" max="800" value="400">50%</meter>
-<menu>...</menu> <!--o quizas <select name y <option value, no?-->
-</details>
-
-
+<div class="gallery" id="chart" contextmenu="supermenu">
+</div>
 <div class="panel">
-<!--ver html5 command tag-->
-
-<fielset name="Controles del algoritmo">
+<!--see html5 command tag to define keyboard shortcuts-->
+<!--see html5 menu tag to move the panel to a toolbar-->
+<fieldset name="algoritmo">
 Carga/Gravedad
-<input name="r" type="range" min="1" max="11" value="9">
-Distancia
-<input name="r" type="range" min="1" max="11" value="9">
-<input type="button" text="Reset" value="Reset Zoom"/>
-</fielset>
-
-
+<input disabled name="charge" type="range" min="1" max="11" value="9"/>
+Distancia 
+<input disabled name="distance" type="range" min="1" max="11" value="9"/>
+<input disabled type="button" type="submit" value="heat"/>
+</fieldset>
+<fieldset name="filtrado">
+fecha <input disabled type="date"/>
+excluye grep <input disabled type="text">
 <br/>
-
-<fielset name="gravity">
-<button>
-Controles de los datos
-<input type="button" value="Recargar"/>
-<input type="checkbox" value="Auto"/> Auto
-</button>
+grado minimo <input disabled name="distance" type="range" min="1" max="11" value="9">
+total edges  <input disabled name="distance" type="range" min="1" max="11" value="9">
+<input disabled type="button" type="reset" value="Do"/>
+</fieldset>
+<fieldset name="visualizacion">
+Grado min texto  <input disabled name="charge" type="range" min="1" max="11" value="9">
+Tama&ntilde;o letra  <input disabled name="charge" type="range" min="1" max="11" value="9">
+Zoom <input disabled name="charge" type="range" min="1" max="11" value="9"> 
+<input disabled type="button" name="ResetZoom" text="ResetZ" type="reset" value="Reset"/> 
+<input disabled type="button" value="Recargar" title="Recarga sin modificar los settings"/>
+<input disabled type="checkbox" value="Auto"/> Actualiza cada 5 minutos
+</fieldset>
+<!--La idea es que estos settings manden informacion de vuelta a la base-->
+<fieldset name="uxxxxserfs">
+user controls
+<menu id="supermenu">
+<input disabled type="button" value="download image">
+<input disabled type="button" value="share image">
+</menu>
 </fielset>
-
- 
-
 </div>
 
 
-<script src="d3.v2.js"></script>
-
-
-
+<script src="/libs/d3.v2.js"></script>
+<!--"D3 is not a compatibility layer, so if your browser doesn't support 
+//standards, you're out of luck."-->
 <script>
 //interesante http://en.wikipedia.org/wiki/Server-sent_events y <eventsource>
 //http://www.html5rocks.com/en/tutorials/eventsource/basics/
-
-
-
-
-
-
-
-//
-//D3 is not a compatibility layer, so if your browser doesn't support 
-//standards, you're out of luck. Sorry!
 //
 //para probar esto en local con crome, lanzar con --allow-file-access-from-files
- d3.select("body")
-   .append('div')
-   .attr('class', 'gallery')
-   .attr('id','chart')
-//no se si esta div deveria ser object y tener sus parametros iniciales
-//como param; parece que no, a no ser que fuera una iframe o un objeto externo
-//vease tambien embed en ese caso.
-
-//y tendria que tener scrollbars o flechas o hot scroll, no?
-
+// d3.select("body").insert('div','div')  //inserta una div antes de la primera div :-D
 
    
- var force=d3.layout.force()
-     .charge(-30)
-     .linkDistance(20)
-     .size([900, 900]);
+// var force=d3.layout.force()
+//     .charge(-30)
+//     .linkDistance(20)
+//     .size([900, 900]);
+
+//
+// Install the SVG chart and set properties
+//
+
 
 var svg = d3.select("#chart").append("svg:svg")   
       .attr("width", 900) .attr("height", 900)
@@ -124,46 +107,42 @@ var svg = d3.select("#chart").append("svg:svg")
       //.attr("transform","translate(-500,500) scale(1.3)")
       //.attr("pointer-events", "all")
 
-
-
-
-var mizoom = d3.behavior.zoom()
-      //.translate([0,0])
-      //.scale(1.0)
-      .scaleExtent([0.5,5.0]) // default is d3_behavior_zoomInfinity
-      .on("zoom", function(){
-            svg.attr("transform","translate(" + d3.event.translate[0] + "," +  d3.event.translate[1] + ") scale(" +  d3.event.scale + ")")
-           })
-      
-      ;
-        
-
-      svg.call(mizoom);
-
 svg.append("svg:rect")
   .attr("width", 900) .attr("height", 900)
   .attr("fill", "white")
+  .attr("stroke","green")
 
- d3.json('result.json', function(datarray) {
+
+var mizoom = d3.behavior.zoom()
+      .scaleExtent([0.5,5.0]) // default is d3_behavior_zoomInfinity
+      .on("zoom", function(){
+            svg.attr("transform","translate(" + d3.event.translate[0] + "," +  d3.event.translate[1] + ") scale(" +  d3.event.scale + ")")
+           });
+        
+svg.call(mizoom);
+
+
+//
+// Call the data
+//
+//
+
+
+
+ d3.json('dataSpainMobile.json', function(datarray) {
   //console.log(datarray);
-  var nodes = [];
+   nodes = [];  //nodos y links sin var, para que salgan de scope??
       nodes.indice=function(nombre){
          var res = -1 ;
-         var intpos= -1;
-         //var that=this
-         //$.each(this, function(entry) {   //este each es una kk mejor otra cosa!
          for (pos in this) {  
-             intpos++  
-             if (this[pos].name==nombre) {res=intpos}
+             if (this[pos].name==nombre) {res=parseInt(pos)}
             }
          return res
        }
-      links = [];
-  //$.each(datarray, function(key, val) {
+     links = []; 
   for ( i in datarray) {
     val = datarray[i]
-    if (val.value > 1) {
-      //console.log(val.key[0], val.key[1], val.value);
+    if (val.value > 1) { 
       if (nodes.indice(val.key[0] )==-1) {nodes.push({name:val.key[0]})}
       if (nodes.indice(val.key[1] )==-1) {nodes.push({name:val.key[1]})}
       links.push({source:nodes.indice(val.key[0]),
@@ -171,8 +150,12 @@ svg.append("svg:rect")
                 peso:val.value }) 
       } 
   };
-  console.log(nodes);
-  console.log(links);
+ 
+   var force=d3.layout.force()
+     .charge(-20)
+     .linkDistance(40)
+     .size([900, 900]);
+
   force.nodes(nodes).links(links).start();
 
   var link = svg.selectAll("line.link")
@@ -186,37 +169,12 @@ svg.append("svg:rect")
        .enter()
        .append("svg:text")
        .attr("class", "node")
-       .attr("r", 1)
-       .text(function(d) { return d.name; })
-       .attr("text-anchor", "middle")
+       .text(function(d) { return d.name; }) 
        //.style("fill", function(d) { return "#432"; })
-       //.append("text")
-       //.attr("text-anchor", "middle")
-       //.attr("class", "node")
-       //.attr("font-family", "sans-serif")
-       //.attr("font-size", "11px")
-       //.attr("fill", "red")
        .call(force.drag);
  
    node.append("title")
         .text(function(d) { return d.name; });
-
-   //node.append("text")
-   //     .text(function(d) { return d.name; });
-
-   node.attr("r",2) ; 
-   
-  // node.append("svg:text")
-   //    .attr("class","nodetext")
-       //.attr("text-anchor", "middle")
-   //    .attr("dy", ".900em")
-   //    .attr("dy", 5)
-       //.attr("x", function(d) { return 90; })
-       //.attr("y", function(d) { return 45+d.y; })
-   //    .text(function(d) { return d.name+"HOLA"; });
-   
-   //node.enter().append("text")
-   //     .attr("text-anchor", "middle")
  
    force.on("tick", function() {
       link.attr("x1", function(d) { return d.source.x; })
@@ -225,11 +183,22 @@ svg.append("svg:rect")
          .attr("y2", function(d) { return d.target.y; });
      node.attr("x", function(d) { return d.x; })
          .attr("y", function(d) { return d.y; });
-     node.attr("cx", function(d) { return d.x; })
-         .attr("cy", function(d) { return d.y; });
-  }) 
- })
-
+  }); 
+ });
 </script>
+
+
+
+
+
+<details> <!-- open="open"-->
+<p>Aqui iria la ayuda, de momento lo usamos para esconder
+cachos de interface que no estan ni planteados</p>
+<progress value="250" max="1000">
+<span id="downloadProgress">25</span>%
+</progress>
+<meter min="0" max="800" value="400">50%</meter>
+<menu>...</menu> <!--o quizas <select name y <option value, no?-->
+</details>
 </body>
 </html>
