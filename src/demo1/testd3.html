@@ -29,6 +29,11 @@ svg {
   border-style:solid;
 }
 
+.disabled {
+  color: gray;
+  
+}
+
 </style>
 <title>demo</title>
 </head>
@@ -47,35 +52,57 @@ Parece que todo el mundo usa un rate-slider del jquery.ui:
 <!--see html5 command tag to define keyboard shortcuts-->
 <!--see html5 menu tag to move the panel to a toolbar-->
 <fieldset name="algoritmo">
-Carga/Gravedad
-<input disabled name="charge" type="range" min="1" max="11" value="9"/>
+Carga
+<input name="charge" type="range" min="-200" max="0" value="-20"
+   onchange="force.charge(this.value);"
+   onmouseup="force.stop();force.start();"
+/>
 Distancia 
-<input disabled name="distance" type="range" min="1" max="11" value="9"/>
-<input disabled type="button" type="submit" value="heat"/>
+<input name="distance" type="range" min="10" max="200" value="40"
+   onchange="force.linkDistance(this.value);"
+   onmouseup="force.stop();force.start();"
+/>
+<input type="button" type="submit" value="heat"
+   onclick="force.alpha(force.alpha()+0.1);"
+/>
 </fieldset>
 <fieldset name="filtrado">
-fecha <input disabled type="date"/>
+<!--deberiamos tambien tener opciones (radio button) para avanzar o retroceder
+en el tiempo automaticamente (tarda 15 segundos en cargar, una fecha arbitraria!), quizas
+indicando la velocidad, quizas no. Y quizas absorviendo la de avanzar desde el tiempo actual-->
+<span class="disabled"> fecha <input disabled type="date"/> 
 excluye grep <input disabled type="text">
 <br/>
 grado minimo <input disabled name="distance" type="range" min="1" max="11" value="9">
-total edges  <input disabled name="distance" type="range" min="1" max="11" value="9">
+max edges  <input disabled name="distance" type="range" min="1" max="11" value="9">
+<input disabled type="checkbox"/> Unifica Mayusculas 
 <input disabled type="button" type="reset" value="Do"/>
+<input disabled type="checkbox" value="Auto"/> Actualiza cada 5 minutos
+</span>
 </fieldset>
 <fieldset name="visualizacion">
-Grado min texto  <input disabled name="charge" type="range" min="1" max="11" value="9">
-Tama&ntilde;o letra  <input disabled name="charge" type="range" min="1" max="11" value="9">
-Zoom <input disabled name="charge" type="range" min="1" max="11" value="9"> 
-<input disabled type="button" name="ResetZoom" text="ResetZ" type="reset" value="Reset"/> 
+<span class="disabled">Grado min texto  <input disabled name="charge" type="range" min="1" max="11" value="9">
+</span>
+Tama&ntilde;o letra  <input name="charge" type="range" min="2" max="24" value="9"
+     onchange="d3.selectAll('text.node').style('font-size',this.value+'px')">
+              
+Zoom <input id="zoombar" type="range" min="0.5" max="5.0" value="1" step="0.1"
+      onchange="mizoom.scale(this.value); 
+                mizoom.translate([0,0]);
+                svg.attr('transform','scale('+this.value+')');
+                "> 
+<input type="button" type="reset" value="Reset Zoom" onclick="mizoom.reset();"/> 
 <input disabled type="button" value="Recargar" title="Recarga sin modificar los settings"/>
-<input disabled type="checkbox" value="Auto"/> Actualiza cada 5 minutos
+
 </fieldset>
 <!--La idea es que estos settings manden informacion de vuelta a la base-->
 <fieldset name="uxxxxserfs">
-user controls
+<span class="disabled">user controls
 <menu id="supermenu">
 <input disabled type="button" value="download image">
 <input disabled type="button" value="share image">
 </menu>
+</span>
 </fielset>
 </div>
 
@@ -88,24 +115,20 @@ user controls
 //http://www.html5rocks.com/en/tutorials/eventsource/basics/
 //
 //para probar esto en local con crome, lanzar con --allow-file-access-from-files
-// d3.select("body").insert('div','div')  //inserta una div antes de la primera div :-D
 
-   
-// var force=d3.layout.force()
-//     .charge(-30)
-//     .linkDistance(20)
-//     .size([900, 900]);
-
-//
 // Install the SVG chart and set properties
-//
+// (si queremos canvas, ver http://bl.ocks.org/2647922#index.html
 
 
-var svg = d3.select("#chart").append("svg:svg")   
+var mainsv = d3.select("#chart").append("svg:svg")   
       .attr("width", 900) .attr("height", 900)
-      .append("svg:g")
-      //.attr("transform","translate(-500,500) scale(1.3)")
-      //.attr("pointer-events", "all")
+      .append("svg:g") //el "viewport" que es obligatorio para el zoom, 
+
+
+
+var svg = mainsv.append("svg:g") // http://stackoverflow.com/questions/10988445/d3-behavior-zoom-jitters-shakes-jumps-and-bounces-when-dragging
+ 
+      //.attr("pointer-events", "all") o quizas solo 'mousewheel' y 'DOMMouseScroll'
 
 svg.append("svg:rect")
   .attr("width", 900) .attr("height", 900)
@@ -113,14 +136,31 @@ svg.append("svg:rect")
   .attr("stroke","green")
 
 
+//para el zoom, http://thisismattmiller.com/blog/add-zoom-slider-to-d3-js/
+//recomienda usar dragdealer
 var mizoom = d3.behavior.zoom()
-      .scaleExtent([0.5,5.0]) // default is d3_behavior_zoomInfinity
+      .scaleExtent([0.5,5.0]) // default is d3_behavior_zoomInfinity See also soombar
       .on("zoom", function(){
             svg.attr("transform","translate(" + d3.event.translate[0] + "," +  d3.event.translate[1] + ") scale(" +  d3.event.scale + ")")
+            d3.select("#zoombar").attr("value",d3.event.scale );
+            d3.select("#zoombar").property("value", d3.event.scale)
            });
-        
+mizoom.reset = function() { //igual es mejor insertar un evento de zoom.
+                            svg.attr("transform","translate(0,0) scale(1.0)");
+                            mizoom.translate([0,0]);
+                            mizoom.scale(1.0); 
+                            d3.select("#zoombar").attr("value","1.0"); //este es el default
+                            d3.select("#zoombar").property("value","1.0"); //y este es el curren
+                           }
 svg.call(mizoom);
+//un monton de ejemplos de interaccion en http://bl.ocks.org/mbostock
+//
+//
 
+var force=d3.layout.force()
+     .charge(-20)
+     .linkDistance(40)
+     .size([900, 900]);
 
 //
 // Call the data
@@ -140,7 +180,8 @@ svg.call(mizoom);
          return res
        }
      links = []; 
-  for ( i in datarray) {
+
+  for ( i in datarray) {    
     val = datarray[i]
     if (val.value > 1) { 
       if (nodes.indice(val.key[0] )==-1) {nodes.push({name:val.key[0]})}
@@ -151,10 +192,7 @@ svg.call(mizoom);
       } 
   };
  
-   var force=d3.layout.force()
-     .charge(-20)
-     .linkDistance(40)
-     .size([900, 900]);
+
 
   force.nodes(nodes).links(links).start();
 
