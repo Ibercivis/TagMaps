@@ -239,11 +239,9 @@ function calldata() {
   
    //.filter habria que emularla
    force.start() //para que evalue el grado
-   nodes= nodes.filter(function(n){return (n.weight > 0)})
-   console.log(nodes.length)
 
    node = svg.selectAll("text.node")
-       .data(nodes)
+       .data(nodes.filter(function(n){return (n.weight > 0)}))
 
    node.enter()
        .append("svg:text")
