@@ -70,15 +70,16 @@ Distancia
 <!--deberiamos tambien tener opciones (radio button) para avanzar o retroceder
 en el tiempo automaticamente (tarda 15 segundos en cargar, una fecha arbitraria!), quizas
 indicando la velocidad, quizas no. Y quizas absorviendo la de avanzar desde el tiempo actual-->
-<span class="disabled"> fecha <input disabled type="date"/> 
-excluye grep <input disabled type="text">
+<span class="disabled"> fecha <input disabled type="date"/>
+excluye grep <input disabled type="text"></span>
 <br/>
-grado minimo <input disabled name="distance" type="range" min="1" max="11" value="9">
-max edges  <input disabled name="distance" type="range" min="1" max="11" value="9">
+grado minimo <input id="maxgrado" type="range" min="1" max="10" value="2"/>
+max edges  <input id="maxedges" type="range" min="10" max="3000" value="1000"/>
 <input disabled type="checkbox"/> Unifica Mayusculas 
-<input disabled type="button" type="reset" value="Do"/>
-<input disabled type="checkbox" value="Auto"/> Actualiza cada 5 minutos
-</span>
+<input type="button" type="reset" value="Do"
+   onclick="calldata()"/>
+<input id="actualiza" type="checkbox" value="Auto"/> Actualiza cada 5 minutos
+
 </fieldset>
 <fieldset name="visualizacion">
 <span class="disabled">Grado min texto  <input disabled name="charge" type="range" min="1" max="11" value="9">
@@ -131,7 +132,7 @@ var svg = mainsv.append("svg:g") // http://stackoverflow.com/questions/10988445/
       //.attr("pointer-events", "all") o quizas solo 'mousewheel' y 'DOMMouseScroll'
 
 svg.append("svg:rect")
-  .attr("width", 900) .attr("height", 900)
+  .attr("width", 900) .attr("height", 900)  //asi cuelga del segundo g, igual se trata de colgarlo del primero
   .attr("fill", "white")
   .attr("stroke","green")
 
@@ -162,59 +163,24 @@ var force=d3.layout.force()
      .linkDistance(40)
      .size([900, 900]);
 
-//
-// Call the data
-//
-//
 
+//los objetos de datos y links
 
-
- d3.json('dataSpainMobile.json', function(datarray) {
-  //console.log(datarray);
-   nodes = [];  //nodos y links sin var, para que salgan de scope??
+nodes = [];  //nodos y links sin var, para que salgan de scope??
       nodes.indice=function(nombre){
          var res = -1 ;
          for (pos in this) {  
              if (this[pos].name==nombre) {res=parseInt(pos)}
-            }
-         return res
-       }
-     links = []; 
+         }
+       return res
+    }
+links = []; 
 
-  for ( i in datarray) {    
-    val = datarray[i]
-    if (val.value > 1) { 
-      if (nodes.indice(val.key[0] )==-1) {nodes.push({name:val.key[0]})}
-      if (nodes.indice(val.key[1] )==-1) {nodes.push({name:val.key[1]})}
-      links.push({source:nodes.indice(val.key[0]),
-                target:nodes.indice(val.key[1]),
-                peso:val.value }) 
-      } 
-  };
- 
+var node = svg.selectAll("text.node")
 
+var link = svg.selectAll("line.link")
 
-  force.nodes(nodes).links(links).start();
-
-  var link = svg.selectAll("line.link")
-         .data(links)
-         .enter().append("svg:line")
-         .attr("class", "link")
-         .style("stroke-width", function(d) { return Math.sqrt(d.peso); });
- 
-   var node = svg.selectAll("text.node")
-       .data(nodes)
-       .enter()
-       .append("svg:text")
-       .attr("class", "node")
-       .text(function(d) { return d.name; }) 
-       //.style("fill", function(d) { return "#432"; })
-       .call(force.drag);
- 
-   node.append("title")
-        .text(function(d) { return d.name; });
- 
-   force.on("tick", function() {
+force.on("tick", function() {
       link.attr("x1", function(d) { return d.source.x; })
          .attr("y1", function(d) { return d.source.y; })
          .attr("x2", function(d) { return d.target.x; })
@@ -222,7 +188,86 @@ var force=d3.layout.force()
      node.attr("x", function(d) { return d.x; })
          .attr("y", function(d) { return d.y; });
   }); 
+
+
+//
+// Call the data
+//
+//
+function calldata() {
+ 
+ //aqui hacer visible el control "recargando"
+ 
+ d3.json('dataSpainMobile.json', function(datarray) {
+  //console.log(datarray);
+  force.stop();
+
+  // De momento, eliminamos todos los links para ahorrarnos trabajo,
+  // pero esto habria que mejorarlo permitiendo sobrevivir a los links
+  // que ya existen
+  links=[] 
+  svg.selectAll("line.link").remove();
+  
+  //hay que ordenar dataarray por val.value
+  datarray.sort(function(a,b) { return b.value - a .value;});
+  for ( i in datarray) {    
+    val = datarray[i]
+    if (val.value >= d3.select("#maxgrado").property("value") ) { 
+      if (nodes.indice(val.key[0] )==-1) {nodes.push({name:val.key[0], x:1000*Math.random(), y:1000})}
+      if (nodes.indice(val.key[1] )==-1) {nodes.push({name:val.key[1], x:1000*Math.random(), y:1000})}
+      links.push({source:nodes.indice(val.key[0]),
+                target:nodes.indice(val.key[1]),
+                peso:val.value }) 
+      if (links.length >= d3.select("#maxedges").property("value") ) {break};
+      } 
+    //TO DO aqui avanzar el control recargando en porcentaje i/dataarray.size o .lenght 
+  };
+   
+   
+  force.nodes(nodes).links(links)
+
+   link = svg.selectAll("line.link")
+         .data(links)
+
+   link.enter().append("svg:line")
+         .attr("class", "link")
+         .style("stroke-width", function(d) { return Math.sqrt(d.peso); });
+
+   // link.exit().remove();
+ 
+   link = svg.selectAll("line.link")
+  
+   //.filter habria que emularla
+   force.start() //para que evalue el grado
+   nodes= nodes.filter(function(n){return (n.weight > 0)})
+   console.log(nodes.length)
+
+   node = svg.selectAll("text.node")
+       .data(nodes)
+
+   node.enter()
+       .append("svg:text")
+       .attr("class", "node")
+       .text(function(d) { if (d.weight > 2) {return d.name}
+                           else {return "@"} 
+                           }) 
+       .call(force.drag)
+       .append("title")
+       .text(function(d) { return d.name; });
+
+   node.exit().remove(); 
+   
+   node =   svg.selectAll("text.node");
+ 
+   
+   
  });
+
+}
+calldata()
+setInterval(function() {
+              if (d3.select("#actualiza").property("checked")) {calldata()}; },300*1000);
+//calldata();
 </script>
 
 
